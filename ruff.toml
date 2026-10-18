@@ -1,0 +1,12 @@
+target-version = "py312"
+line-length = 120
+
+[lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "ASYNC"]
+ignore = [
+    "S101",  # assert in tests
+    "S104",  # containers bind 0.0.0.0 on purpose
+]
+
+[lint.per-file-ignores]
+"**/tests/**" = ["S"]
