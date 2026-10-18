@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/willvelida/owasp-agents-sample/data/seed/schema.json",
+  "title": "Biotrackr health document",
+  "description": "Shape of every document in the Cosmos DB health container (partition key /userId).",
+  "type": "object",
+  "required": ["id", "userId", "date", "documentType"],
+  "properties": {
+    "id": { "type": "string", "description": "<userId>-<documentType>-<date>" },
+    "userId": { "type": "string", "enum": ["alice", "bob"] },
+    "date": { "type": "string", "format": "date" },
+    "documentType": { "type": "string", "enum": ["activity", "food", "sleep", "vitals"] },
+    "activity": {
+      "type": "object",
+      "properties": {
+        "steps": { "type": "integer" },
+        "distanceKm": { "type": "number" },
+        "caloriesOut": { "type": "integer" },
+        "activeMinutes": { "type": "integer" },
+        "restingHeartRate": { "type": "integer" }
+      }
+    },
+    "food": {
+      "type": "object",
+      "properties": {
+        "meals": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "meal": { "type": "string" },
+              "calories": { "type": "integer" },
+              "proteinG": { "type": "integer" },
+              "carbsG": { "type": "integer" },
+              "fatG": { "type": "integer" }
+            }
+          }
+        },
+        "totalCalories": { "type": "integer" },
+        "waterMl": { "type": "integer" },
+        "notes": { "type": "string", "description": "Free text written by the user. Untrusted (ASI01)." }
+      }
+    },
+    "sleep": {
+      "type": "object",
+      "properties": {
+        "minutesAsleep": { "type": "integer" },
+        "efficiency": { "type": "integer" },
+        "stages": {
+          "type": "object",
+          "properties": {
+            "deep": { "type": "integer" },
+            "rem": { "type": "integer" },
+            "light": { "type": "integer" },
+            "wake": { "type": "integer" }
+          }
+        },
+        "bedtime": { "type": "string" },
+        "notes": { "type": "string" }
+      }
+    },
+    "vitals": {
+      "type": "object",
+      "properties": {
+        "weightKg": { "type": "number" },
+        "systolic": { "type": "integer" },
+        "diastolic": { "type": "integer" },
+        "spo2": { "type": "integer" }
+      }
+    }
+  }
+}

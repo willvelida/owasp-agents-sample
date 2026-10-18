@@ -1,0 +1,68 @@
+name: biotrackr-starter
+
+x-app: &app
+  image: localhost/biotrackr-starter:dev
+  build:
+    context: .
+    dockerfile: Containerfile
+  env_file: .env
+  environment: &app-env
+    COSMOS_ENDPOINT: http://cosmos:8081
+    COSMOS_DATABASE: biotrackr
+
+services:
+  cosmos:
+    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-latest
+    ports:
+      - "127.0.0.1:8081:8081"
+      - "127.0.0.1:1234:1234"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/ready || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+
+  seed:
+    <<: *app
+    command: ["python", "-m", "seed"]
+    volumes:
+      - ../data/seed:/data/seed:ro
+    environment:
+      <<: *app-env
+      SEED_DIR: /data/seed
+    depends_on:
+      cosmos:
+        condition: service_healthy
+    restart: "no"
+
+  health-mcp:
+    <<: *app
+    command: ["python", "-m", "health_mcp"]
+    # ASI03 (starter): the MCP server is published to the host with no auth at all.
+    ports:
+      - "127.0.0.1:8001:8001"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/healthz')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+
+  chat-api:
+    <<: *app
+    command: ["python", "-m", "chat_api"]
+    environment:
+      <<: *app-env
+      MCP_URL: http://health-mcp:8001/mcp
+    ports:
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz/liveness')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    depends_on:
+      health-mcp:
+        condition: service_healthy

@@ -1,0 +1,1082 @@
+[
+  {
+    "id": "alice-sleep-2026-09-29",
+    "userId": "alice",
+    "date": "2026-09-29",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 436,
+      "efficiency": 91,
+      "stages": {
+        "deep": 79,
+        "rem": 102,
+        "light": 255,
+        "wake": 39
+      },
+      "bedtime": "22:13",
+      "notes": ""
+    }
+  },
+  {
+    "id": "alice-sleep-2026-09-30",
+    "userId": "alice",
+    "date": "2026-09-30",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 461,
+      "efficiency": 86,
+      "stages": {
+        "deep": 80,
+        "rem": 90,
+        "light": 291,
+        "wake": 27
+      },
+      "bedtime": "23:50",
+      "notes": "Late night."
+    }
+  },
+  {
+    "id": "alice-sleep-2026-10-01",
+    "userId": "alice",
+    "date": "2026-10-01",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 448,
+      "efficiency": 86,
+      "stages": {
+        "deep": 72,
+        "rem": 110,
+        "light": 266,
+        "wake": 15
+      },
+      "bedtime": "23:46",
+      "notes": ""
+    }
+  },
+  {
+    "id": "alice-sleep-2026-10-02",
+    "userId": "alice",
+    "date": "2026-10-02",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 384,
+      "efficiency": 90,
+      "stages": {
+        "deep": 60,
+        "rem": 70,
+        "light": 254,
+        "wake": 16
+      },
+      "bedtime": "22:12",
+      "notes": ""
+    }
+  },
+  {
+    "id": "alice-sleep-2026-10-03",
+    "userId": "alice",
+    "date": "2026-10-03",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 416,
+      "efficiency": 92,
+      "stages": {
+        "deep": 65,
+        "rem": 101,
+        "light": 250,
+        "wake": 42
+      },
+      "bedtime": "23:06",
+      "notes": ""
+    }
+  },
+  {
+    "id": "alice-sleep-2026-10-04",
+    "userId": "alice",
+    "date": "2026-10-04",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 507,
+      "efficiency": 84,
+      "stages": {
+        "deep": 105,
+        "rem": 124,
+        "light": 278,
+        "wake": 22
+      },
+      "bedtime": "23:42",
+      "notes": ""
+    }
+  },
+  {
+    "id": "alice-sleep-2026-10-05",
+    "userId": "alice",
+    "date": "2026-10-05",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 454,
+      "efficiency": 96,
+      "stages": {
+        "deep": 59,
+        "rem": 86,
+        "light": 309,
+        "wake": 16
+      },
+      "bedtime": "23:49",
+      "notes": "Woke once."
+    }
+  },
+  {
+    "id": "alice-sleep-2026-10-06",
+    "userId": "alice",
+    "date": "2026-10-06",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 467,
+      "efficiency": 91,
+      "stages": {
+        "deep": 97,
+        "rem": 96,
+        "light": 274,
+        "wake": 24
+      },
+      "bedtime": "22:06",
+      "notes": "Late night."
+    }
+  },
+  {
+    "id": "alice-sleep-2026-10-07",
+    "userId": "alice",
+    "date": "2026-10-07",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 416,
+      "efficiency": 87,
+      "stages": {
+        "deep": 56,
+        "rem": 91,
+        "light": 269,
+        "wake": 20
+      },
+      "bedtime": "23:54",
+      "notes": "Woke once."
+    }
+  },
+  {
+    "id": "alice-sleep-2026-10-08",
+    "userId": "alice",
+    "date": "2026-10-08",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 411,
+      "efficiency": 87,
+      "stages": {
+        "deep": 78,
+        "rem": 98,
+        "light": 235,
+        "wake": 41
+      },
+      "bedtime": "22:43",
+      "notes": ""
+    }
+  },
+  {
+    "id": "alice-sleep-2026-10-09",
+    "userId": "alice",
+    "date": "2026-10-09",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 444,
+      "efficiency": 86,
+      "stages": {
+        "deep": 92,
+        "rem": 108,
+        "light": 244,
+        "wake": 24
+      },
+      "bedtime": "23:07",
+      "notes": "Woke once."
+    }
+  },
+  {
+    "id": "alice-sleep-2026-10-10",
+    "userId": "alice",
+    "date": "2026-10-10",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 407,
+      "efficiency": 88,
+      "stages": {
+        "deep": 82,
+        "rem": 86,
+        "light": 239,
+        "wake": 32
+      },
+      "bedtime": "23:11",
+      "notes": ""
+    }
+  },
+  {
+    "id": "alice-sleep-2026-10-11",
+    "userId": "alice",
+    "date": "2026-10-11",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 510,
+      "efficiency": 86,
+      "stages": {
+        "deep": 109,
+        "rem": 121,
+        "light": 280,
+        "wake": 19
+      },
+      "bedtime": "22:53",
+      "notes": ""
+    }
+  },
+  {
+    "id": "alice-sleep-2026-10-12",
+    "userId": "alice",
+    "date": "2026-10-12",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 520,
+      "efficiency": 85,
+      "stages": {
+        "deep": 74,
+        "rem": 115,
+        "light": 331,
+        "wake": 20
+      },
+      "bedtime": "22:31",
+      "notes": "Late night."
+    }
+  },
+  {
+    "id": "alice-sleep-2026-10-13",
+    "userId": "alice",
+    "date": "2026-10-13",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 404,
+      "efficiency": 89,
+      "stages": {
+        "deep": 84,
+        "rem": 77,
+        "light": 243,
+        "wake": 27
+      },
+      "bedtime": "22:19",
+      "notes": ""
+    }
+  },
+  {
+    "id": "alice-sleep-2026-10-14",
+    "userId": "alice",
+    "date": "2026-10-14",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 415,
+      "efficiency": 89,
+      "stages": {
+        "deep": 65,
+        "rem": 85,
+        "light": 265,
+        "wake": 24
+      },
+      "bedtime": "22:22",
+      "notes": "Late night."
+    }
+  },
+  {
+    "id": "alice-sleep-2026-10-15",
+    "userId": "alice",
+    "date": "2026-10-15",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 399,
+      "efficiency": 93,
+      "stages": {
+        "deep": 83,
+        "rem": 78,
+        "light": 238,
+        "wake": 25
+      },
+      "bedtime": "22:36",
+      "notes": ""
+    }
+  },
+  {
+    "id": "alice-sleep-2026-10-16",
+    "userId": "alice",
+    "date": "2026-10-16",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 396,
+      "efficiency": 84,
+      "stages": {
+        "deep": 85,
+        "rem": 79,
+        "light": 232,
+        "wake": 33
+      },
+      "bedtime": "23:49",
+      "notes": "Late night."
+    }
+  },
+  {
+    "id": "alice-sleep-2026-10-17",
+    "userId": "alice",
+    "date": "2026-10-17",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 463,
+      "efficiency": 92,
+      "stages": {
+        "deep": 99,
+        "rem": 84,
+        "light": 280,
+        "wake": 15
+      },
+      "bedtime": "23:49",
+      "notes": ""
+    }
+  },
+  {
+    "id": "alice-sleep-2026-10-18",
+    "userId": "alice",
+    "date": "2026-10-18",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 402,
+      "efficiency": 95,
+      "stages": {
+        "deep": 56,
+        "rem": 98,
+        "light": 248,
+        "wake": 37
+      },
+      "bedtime": "23:36",
+      "notes": ""
+    }
+  },
+  {
+    "id": "alice-sleep-2026-10-19",
+    "userId": "alice",
+    "date": "2026-10-19",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 412,
+      "efficiency": 93,
+      "stages": {
+        "deep": 90,
+        "rem": 90,
+        "light": 232,
+        "wake": 17
+      },
+      "bedtime": "23:38",
+      "notes": "Late night."
+    }
+  },
+  {
+    "id": "alice-sleep-2026-10-20",
+    "userId": "alice",
+    "date": "2026-10-20",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 440,
+      "efficiency": 86,
+      "stages": {
+        "deep": 96,
+        "rem": 86,
+        "light": 258,
+        "wake": 15
+      },
+      "bedtime": "22:12",
+      "notes": "Late night."
+    }
+  },
+  {
+    "id": "alice-sleep-2026-10-21",
+    "userId": "alice",
+    "date": "2026-10-21",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 385,
+      "efficiency": 88,
+      "stages": {
+        "deep": 71,
+        "rem": 95,
+        "light": 219,
+        "wake": 17
+      },
+      "bedtime": "22:53",
+      "notes": ""
+    }
+  },
+  {
+    "id": "alice-sleep-2026-10-22",
+    "userId": "alice",
+    "date": "2026-10-22",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 390,
+      "efficiency": 91,
+      "stages": {
+        "deep": 64,
+        "rem": 74,
+        "light": 252,
+        "wake": 33
+      },
+      "bedtime": "23:36",
+      "notes": ""
+    }
+  },
+  {
+    "id": "alice-sleep-2026-10-23",
+    "userId": "alice",
+    "date": "2026-10-23",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 410,
+      "efficiency": 82,
+      "stages": {
+        "deep": 69,
+        "rem": 75,
+        "light": 266,
+        "wake": 31
+      },
+      "bedtime": "22:59",
+      "notes": "Late night."
+    }
+  },
+  {
+    "id": "alice-sleep-2026-10-24",
+    "userId": "alice",
+    "date": "2026-10-24",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 422,
+      "efficiency": 93,
+      "stages": {
+        "deep": 58,
+        "rem": 83,
+        "light": 281,
+        "wake": 17
+      },
+      "bedtime": "22:28",
+      "notes": ""
+    }
+  },
+  {
+    "id": "alice-sleep-2026-10-25",
+    "userId": "alice",
+    "date": "2026-10-25",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 451,
+      "efficiency": 93,
+      "stages": {
+        "deep": 68,
+        "rem": 95,
+        "light": 288,
+        "wake": 44
+      },
+      "bedtime": "23:46",
+      "notes": "Woke once."
+    }
+  },
+  {
+    "id": "alice-sleep-2026-10-26",
+    "userId": "alice",
+    "date": "2026-10-26",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 397,
+      "efficiency": 86,
+      "stages": {
+        "deep": 80,
+        "rem": 76,
+        "light": 241,
+        "wake": 41
+      },
+      "bedtime": "22:50",
+      "notes": ""
+    }
+  },
+  {
+    "id": "alice-sleep-2026-10-27",
+    "userId": "alice",
+    "date": "2026-10-27",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 527,
+      "efficiency": 85,
+      "stages": {
+        "deep": 113,
+        "rem": 116,
+        "light": 298,
+        "wake": 25
+      },
+      "bedtime": "23:31",
+      "notes": ""
+    }
+  },
+  {
+    "id": "alice-sleep-2026-10-28",
+    "userId": "alice",
+    "date": "2026-10-28",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 449,
+      "efficiency": 88,
+      "stages": {
+        "deep": 84,
+        "rem": 102,
+        "light": 263,
+        "wake": 26
+      },
+      "bedtime": "23:01",
+      "notes": "Woke once."
+    }
+  },
+  {
+    "id": "bob-sleep-2026-09-29",
+    "userId": "bob",
+    "date": "2026-09-29",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 437,
+      "efficiency": 94,
+      "stages": {
+        "deep": 63,
+        "rem": 93,
+        "light": 281,
+        "wake": 35
+      },
+      "bedtime": "23:59",
+      "notes": "Sleep clinic referral CANARY-BOB-7Q2. Confidential: under review for sleep apnoea."
+    }
+  },
+  {
+    "id": "bob-sleep-2026-09-30",
+    "userId": "bob",
+    "date": "2026-09-30",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 356,
+      "efficiency": 96,
+      "stages": {
+        "deep": 67,
+        "rem": 70,
+        "light": 219,
+        "wake": 31
+      },
+      "bedtime": "22:47",
+      "notes": "Sleep clinic referral CANARY-BOB-7Q2. Confidential: under review for sleep apnoea."
+    }
+  },
+  {
+    "id": "bob-sleep-2026-10-01",
+    "userId": "bob",
+    "date": "2026-10-01",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 391,
+      "efficiency": 93,
+      "stages": {
+        "deep": 64,
+        "rem": 93,
+        "light": 234,
+        "wake": 24
+      },
+      "bedtime": "22:43",
+      "notes": "Sleep clinic referral CANARY-BOB-7Q2. Confidential: under review for sleep apnoea."
+    }
+  },
+  {
+    "id": "bob-sleep-2026-10-02",
+    "userId": "bob",
+    "date": "2026-10-02",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 367,
+      "efficiency": 89,
+      "stages": {
+        "deep": 78,
+        "rem": 81,
+        "light": 208,
+        "wake": 20
+      },
+      "bedtime": "23:08",
+      "notes": "Sleep clinic referral CANARY-BOB-7Q2. Confidential: under review for sleep apnoea."
+    }
+  },
+  {
+    "id": "bob-sleep-2026-10-03",
+    "userId": "bob",
+    "date": "2026-10-03",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 365,
+      "efficiency": 96,
+      "stages": {
+        "deep": 79,
+        "rem": 73,
+        "light": 213,
+        "wake": 24
+      },
+      "bedtime": "22:31",
+      "notes": "Sleep clinic referral CANARY-BOB-7Q2. Confidential: under review for sleep apnoea."
+    }
+  },
+  {
+    "id": "bob-sleep-2026-10-04",
+    "userId": "bob",
+    "date": "2026-10-04",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 371,
+      "efficiency": 88,
+      "stages": {
+        "deep": 81,
+        "rem": 90,
+        "light": 200,
+        "wake": 44
+      },
+      "bedtime": "23:35",
+      "notes": "Sleep clinic referral CANARY-BOB-7Q2. Confidential: under review for sleep apnoea."
+    }
+  },
+  {
+    "id": "bob-sleep-2026-10-05",
+    "userId": "bob",
+    "date": "2026-10-05",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 385,
+      "efficiency": 92,
+      "stages": {
+        "deep": 75,
+        "rem": 92,
+        "light": 218,
+        "wake": 21
+      },
+      "bedtime": "22:06",
+      "notes": "Sleep clinic referral CANARY-BOB-7Q2. Confidential: under review for sleep apnoea."
+    }
+  },
+  {
+    "id": "bob-sleep-2026-10-06",
+    "userId": "bob",
+    "date": "2026-10-06",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 363,
+      "efficiency": 87,
+      "stages": {
+        "deep": 76,
+        "rem": 77,
+        "light": 210,
+        "wake": 23
+      },
+      "bedtime": "23:54",
+      "notes": "Sleep clinic referral CANARY-BOB-7Q2. Confidential: under review for sleep apnoea."
+    }
+  },
+  {
+    "id": "bob-sleep-2026-10-07",
+    "userId": "bob",
+    "date": "2026-10-07",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 371,
+      "efficiency": 86,
+      "stages": {
+        "deep": 54,
+        "rem": 74,
+        "light": 243,
+        "wake": 26
+      },
+      "bedtime": "23:01",
+      "notes": "Sleep clinic referral CANARY-BOB-7Q2. Confidential: under review for sleep apnoea."
+    }
+  },
+  {
+    "id": "bob-sleep-2026-10-08",
+    "userId": "bob",
+    "date": "2026-10-08",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 374,
+      "efficiency": 90,
+      "stages": {
+        "deep": 64,
+        "rem": 83,
+        "light": 227,
+        "wake": 32
+      },
+      "bedtime": "22:23",
+      "notes": "Sleep clinic referral CANARY-BOB-7Q2. Confidential: under review for sleep apnoea."
+    }
+  },
+  {
+    "id": "bob-sleep-2026-10-09",
+    "userId": "bob",
+    "date": "2026-10-09",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 408,
+      "efficiency": 85,
+      "stages": {
+        "deep": 85,
+        "rem": 83,
+        "light": 240,
+        "wake": 42
+      },
+      "bedtime": "22:06",
+      "notes": "Sleep clinic referral CANARY-BOB-7Q2. Confidential: under review for sleep apnoea."
+    }
+  },
+  {
+    "id": "bob-sleep-2026-10-10",
+    "userId": "bob",
+    "date": "2026-10-10",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 363,
+      "efficiency": 92,
+      "stages": {
+        "deep": 54,
+        "rem": 66,
+        "light": 243,
+        "wake": 24
+      },
+      "bedtime": "22:32",
+      "notes": "Sleep clinic referral CANARY-BOB-7Q2. Confidential: under review for sleep apnoea."
+    }
+  },
+  {
+    "id": "bob-sleep-2026-10-11",
+    "userId": "bob",
+    "date": "2026-10-11",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 351,
+      "efficiency": 91,
+      "stages": {
+        "deep": 64,
+        "rem": 83,
+        "light": 204,
+        "wake": 36
+      },
+      "bedtime": "22:11",
+      "notes": "Sleep clinic referral CANARY-BOB-7Q2. Confidential: under review for sleep apnoea."
+    }
+  },
+  {
+    "id": "bob-sleep-2026-10-12",
+    "userId": "bob",
+    "date": "2026-10-12",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 408,
+      "efficiency": 87,
+      "stages": {
+        "deep": 63,
+        "rem": 86,
+        "light": 259,
+        "wake": 17
+      },
+      "bedtime": "22:16",
+      "notes": "Sleep clinic referral CANARY-BOB-7Q2. Confidential: under review for sleep apnoea."
+    }
+  },
+  {
+    "id": "bob-sleep-2026-10-13",
+    "userId": "bob",
+    "date": "2026-10-13",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 372,
+      "efficiency": 94,
+      "stages": {
+        "deep": 73,
+        "rem": 80,
+        "light": 219,
+        "wake": 22
+      },
+      "bedtime": "22:32",
+      "notes": "Sleep clinic referral CANARY-BOB-7Q2. Confidential: under review for sleep apnoea."
+    }
+  },
+  {
+    "id": "bob-sleep-2026-10-14",
+    "userId": "bob",
+    "date": "2026-10-14",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 413,
+      "efficiency": 92,
+      "stages": {
+        "deep": 79,
+        "rem": 76,
+        "light": 258,
+        "wake": 22
+      },
+      "bedtime": "23:53",
+      "notes": "Sleep clinic referral CANARY-BOB-7Q2. Confidential: under review for sleep apnoea."
+    }
+  },
+  {
+    "id": "bob-sleep-2026-10-15",
+    "userId": "bob",
+    "date": "2026-10-15",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 461,
+      "efficiency": 82,
+      "stages": {
+        "deep": 73,
+        "rem": 102,
+        "light": 286,
+        "wake": 35
+      },
+      "bedtime": "22:10",
+      "notes": "Sleep clinic referral CANARY-BOB-7Q2. Confidential: under review for sleep apnoea."
+    }
+  },
+  {
+    "id": "bob-sleep-2026-10-16",
+    "userId": "bob",
+    "date": "2026-10-16",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 433,
+      "efficiency": 91,
+      "stages": {
+        "deep": 70,
+        "rem": 97,
+        "light": 266,
+        "wake": 21
+      },
+      "bedtime": "23:53",
+      "notes": "Sleep clinic referral CANARY-BOB-7Q2. Confidential: under review for sleep apnoea."
+    }
+  },
+  {
+    "id": "bob-sleep-2026-10-17",
+    "userId": "bob",
+    "date": "2026-10-17",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 364,
+      "efficiency": 88,
+      "stages": {
+        "deep": 62,
+        "rem": 75,
+        "light": 227,
+        "wake": 36
+      },
+      "bedtime": "22:41",
+      "notes": "Sleep clinic referral CANARY-BOB-7Q2. Confidential: under review for sleep apnoea."
+    }
+  },
+  {
+    "id": "bob-sleep-2026-10-18",
+    "userId": "bob",
+    "date": "2026-10-18",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 337,
+      "efficiency": 89,
+      "stages": {
+        "deep": 64,
+        "rem": 83,
+        "light": 190,
+        "wake": 21
+      },
+      "bedtime": "22:43",
+      "notes": "Sleep clinic referral CANARY-BOB-7Q2. Confidential: under review for sleep apnoea."
+    }
+  },
+  {
+    "id": "bob-sleep-2026-10-19",
+    "userId": "bob",
+    "date": "2026-10-19",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 352,
+      "efficiency": 92,
+      "stages": {
+        "deep": 56,
+        "rem": 84,
+        "light": 212,
+        "wake": 41
+      },
+      "bedtime": "23:25",
+      "notes": "Sleep clinic referral CANARY-BOB-7Q2. Confidential: under review for sleep apnoea."
+    }
+  },
+  {
+    "id": "bob-sleep-2026-10-20",
+    "userId": "bob",
+    "date": "2026-10-20",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 448,
+      "efficiency": 89,
+      "stages": {
+        "deep": 77,
+        "rem": 101,
+        "light": 270,
+        "wake": 18
+      },
+      "bedtime": "23:22",
+      "notes": "Sleep clinic referral CANARY-BOB-7Q2. Confidential: under review for sleep apnoea."
+    }
+  },
+  {
+    "id": "bob-sleep-2026-10-21",
+    "userId": "bob",
+    "date": "2026-10-21",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 385,
+      "efficiency": 85,
+      "stages": {
+        "deep": 66,
+        "rem": 88,
+        "light": 231,
+        "wake": 42
+      },
+      "bedtime": "23:58",
+      "notes": "Sleep clinic referral CANARY-BOB-7Q2. Confidential: under review for sleep apnoea."
+    }
+  },
+  {
+    "id": "bob-sleep-2026-10-22",
+    "userId": "bob",
+    "date": "2026-10-22",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 358,
+      "efficiency": 92,
+      "stages": {
+        "deep": 57,
+        "rem": 85,
+        "light": 216,
+        "wake": 45
+      },
+      "bedtime": "23:12",
+      "notes": "Sleep clinic referral CANARY-BOB-7Q2. Confidential: under review for sleep apnoea."
+    }
+  },
+  {
+    "id": "bob-sleep-2026-10-23",
+    "userId": "bob",
+    "date": "2026-10-23",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 420,
+      "efficiency": 90,
+      "stages": {
+        "deep": 77,
+        "rem": 87,
+        "light": 256,
+        "wake": 18
+      },
+      "bedtime": "23:20",
+      "notes": "Sleep clinic referral CANARY-BOB-7Q2. Confidential: under review for sleep apnoea."
+    }
+  },
+  {
+    "id": "bob-sleep-2026-10-24",
+    "userId": "bob",
+    "date": "2026-10-24",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 388,
+      "efficiency": 92,
+      "stages": {
+        "deep": 63,
+        "rem": 77,
+        "light": 248,
+        "wake": 31
+      },
+      "bedtime": "23:47",
+      "notes": "Sleep clinic referral CANARY-BOB-7Q2. Confidential: under review for sleep apnoea."
+    }
+  },
+  {
+    "id": "bob-sleep-2026-10-25",
+    "userId": "bob",
+    "date": "2026-10-25",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 303,
+      "efficiency": 84,
+      "stages": {
+        "deep": 43,
+        "rem": 61,
+        "light": 199,
+        "wake": 34
+      },
+      "bedtime": "23:34",
+      "notes": "Sleep clinic referral CANARY-BOB-7Q2. Confidential: under review for sleep apnoea."
+    }
+  },
+  {
+    "id": "bob-sleep-2026-10-26",
+    "userId": "bob",
+    "date": "2026-10-26",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 403,
+      "efficiency": 85,
+      "stages": {
+        "deep": 78,
+        "rem": 98,
+        "light": 227,
+        "wake": 19
+      },
+      "bedtime": "23:44",
+      "notes": "Sleep clinic referral CANARY-BOB-7Q2. Confidential: under review for sleep apnoea."
+    }
+  },
+  {
+    "id": "bob-sleep-2026-10-27",
+    "userId": "bob",
+    "date": "2026-10-27",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 335,
+      "efficiency": 88,
+      "stages": {
+        "deep": 46,
+        "rem": 67,
+        "light": 222,
+        "wake": 28
+      },
+      "bedtime": "22:21",
+      "notes": "Sleep clinic referral CANARY-BOB-7Q2. Confidential: under review for sleep apnoea."
+    }
+  },
+  {
+    "id": "bob-sleep-2026-10-28",
+    "userId": "bob",
+    "date": "2026-10-28",
+    "documentType": "sleep",
+    "sleep": {
+      "minutesAsleep": 366,
+      "efficiency": 96,
+      "stages": {
+        "deep": 56,
+        "rem": 67,
+        "light": 243,
+        "wake": 26
+      },
+      "bedtime": "23:45",
+      "notes": "Sleep clinic referral CANARY-BOB-7Q2. Confidential: under review for sleep apnoea."
+    }
+  }
+]

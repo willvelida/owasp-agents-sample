@@ -1,0 +1,722 @@
+[
+  {
+    "id": "alice-vitals-2026-09-29",
+    "userId": "alice",
+    "date": "2026-09-29",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 64.0,
+      "systolic": 115,
+      "diastolic": 80,
+      "spo2": 96
+    }
+  },
+  {
+    "id": "alice-vitals-2026-09-30",
+    "userId": "alice",
+    "date": "2026-09-30",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 63.6,
+      "systolic": 115,
+      "diastolic": 71,
+      "spo2": 97
+    }
+  },
+  {
+    "id": "alice-vitals-2026-10-01",
+    "userId": "alice",
+    "date": "2026-10-01",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 64.4,
+      "systolic": 122,
+      "diastolic": 75,
+      "spo2": 99
+    }
+  },
+  {
+    "id": "alice-vitals-2026-10-02",
+    "userId": "alice",
+    "date": "2026-10-02",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 64.1,
+      "systolic": 120,
+      "diastolic": 76,
+      "spo2": 96
+    }
+  },
+  {
+    "id": "alice-vitals-2026-10-03",
+    "userId": "alice",
+    "date": "2026-10-03",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 63.8,
+      "systolic": 112,
+      "diastolic": 73,
+      "spo2": 95
+    }
+  },
+  {
+    "id": "alice-vitals-2026-10-04",
+    "userId": "alice",
+    "date": "2026-10-04",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 64.3,
+      "systolic": 119,
+      "diastolic": 80,
+      "spo2": 99
+    }
+  },
+  {
+    "id": "alice-vitals-2026-10-05",
+    "userId": "alice",
+    "date": "2026-10-05",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 63.8,
+      "systolic": 123,
+      "diastolic": 77,
+      "spo2": 95
+    }
+  },
+  {
+    "id": "alice-vitals-2026-10-06",
+    "userId": "alice",
+    "date": "2026-10-06",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 63.5,
+      "systolic": 118,
+      "diastolic": 72,
+      "spo2": 96
+    }
+  },
+  {
+    "id": "alice-vitals-2026-10-07",
+    "userId": "alice",
+    "date": "2026-10-07",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 64.1,
+      "systolic": 115,
+      "diastolic": 75,
+      "spo2": 96
+    }
+  },
+  {
+    "id": "alice-vitals-2026-10-08",
+    "userId": "alice",
+    "date": "2026-10-08",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 63.6,
+      "systolic": 116,
+      "diastolic": 74,
+      "spo2": 98
+    }
+  },
+  {
+    "id": "alice-vitals-2026-10-09",
+    "userId": "alice",
+    "date": "2026-10-09",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 64.3,
+      "systolic": 121,
+      "diastolic": 77,
+      "spo2": 99
+    }
+  },
+  {
+    "id": "alice-vitals-2026-10-10",
+    "userId": "alice",
+    "date": "2026-10-10",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 64.5,
+      "systolic": 110,
+      "diastolic": 76,
+      "spo2": 98
+    }
+  },
+  {
+    "id": "alice-vitals-2026-10-11",
+    "userId": "alice",
+    "date": "2026-10-11",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 64.0,
+      "systolic": 115,
+      "diastolic": 75,
+      "spo2": 98
+    }
+  },
+  {
+    "id": "alice-vitals-2026-10-12",
+    "userId": "alice",
+    "date": "2026-10-12",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 63.8,
+      "systolic": 111,
+      "diastolic": 71,
+      "spo2": 98
+    }
+  },
+  {
+    "id": "alice-vitals-2026-10-13",
+    "userId": "alice",
+    "date": "2026-10-13",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 64.4,
+      "systolic": 118,
+      "diastolic": 76,
+      "spo2": 99
+    }
+  },
+  {
+    "id": "alice-vitals-2026-10-14",
+    "userId": "alice",
+    "date": "2026-10-14",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 64.1,
+      "systolic": 120,
+      "diastolic": 71,
+      "spo2": 95
+    }
+  },
+  {
+    "id": "alice-vitals-2026-10-15",
+    "userId": "alice",
+    "date": "2026-10-15",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 63.8,
+      "systolic": 112,
+      "diastolic": 79,
+      "spo2": 97
+    }
+  },
+  {
+    "id": "alice-vitals-2026-10-16",
+    "userId": "alice",
+    "date": "2026-10-16",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 64.0,
+      "systolic": 124,
+      "diastolic": 70,
+      "spo2": 96
+    }
+  },
+  {
+    "id": "alice-vitals-2026-10-17",
+    "userId": "alice",
+    "date": "2026-10-17",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 64.4,
+      "systolic": 112,
+      "diastolic": 70,
+      "spo2": 95
+    }
+  },
+  {
+    "id": "alice-vitals-2026-10-18",
+    "userId": "alice",
+    "date": "2026-10-18",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 64.5,
+      "systolic": 124,
+      "diastolic": 71,
+      "spo2": 96
+    }
+  },
+  {
+    "id": "alice-vitals-2026-10-19",
+    "userId": "alice",
+    "date": "2026-10-19",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 64.1,
+      "systolic": 124,
+      "diastolic": 80,
+      "spo2": 98
+    }
+  },
+  {
+    "id": "alice-vitals-2026-10-20",
+    "userId": "alice",
+    "date": "2026-10-20",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 64.1,
+      "systolic": 123,
+      "diastolic": 73,
+      "spo2": 97
+    }
+  },
+  {
+    "id": "alice-vitals-2026-10-21",
+    "userId": "alice",
+    "date": "2026-10-21",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 63.5,
+      "systolic": 121,
+      "diastolic": 70,
+      "spo2": 96
+    }
+  },
+  {
+    "id": "alice-vitals-2026-10-22",
+    "userId": "alice",
+    "date": "2026-10-22",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 63.7,
+      "systolic": 121,
+      "diastolic": 77,
+      "spo2": 98
+    }
+  },
+  {
+    "id": "alice-vitals-2026-10-23",
+    "userId": "alice",
+    "date": "2026-10-23",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 64.2,
+      "systolic": 118,
+      "diastolic": 71,
+      "spo2": 99
+    }
+  },
+  {
+    "id": "alice-vitals-2026-10-24",
+    "userId": "alice",
+    "date": "2026-10-24",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 63.7,
+      "systolic": 116,
+      "diastolic": 72,
+      "spo2": 95
+    }
+  },
+  {
+    "id": "alice-vitals-2026-10-25",
+    "userId": "alice",
+    "date": "2026-10-25",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 64.6,
+      "systolic": 110,
+      "diastolic": 76,
+      "spo2": 97
+    }
+  },
+  {
+    "id": "alice-vitals-2026-10-26",
+    "userId": "alice",
+    "date": "2026-10-26",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 63.5,
+      "systolic": 117,
+      "diastolic": 79,
+      "spo2": 97
+    }
+  },
+  {
+    "id": "alice-vitals-2026-10-27",
+    "userId": "alice",
+    "date": "2026-10-27",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 63.6,
+      "systolic": 121,
+      "diastolic": 73,
+      "spo2": 95
+    }
+  },
+  {
+    "id": "alice-vitals-2026-10-28",
+    "userId": "alice",
+    "date": "2026-10-28",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 63.4,
+      "systolic": 119,
+      "diastolic": 72,
+      "spo2": 95
+    }
+  },
+  {
+    "id": "bob-vitals-2026-09-29",
+    "userId": "bob",
+    "date": "2026-09-29",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 88.3,
+      "systolic": 137,
+      "diastolic": 89,
+      "spo2": 96
+    }
+  },
+  {
+    "id": "bob-vitals-2026-09-30",
+    "userId": "bob",
+    "date": "2026-09-30",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 87.9,
+      "systolic": 133,
+      "diastolic": 83,
+      "spo2": 97
+    }
+  },
+  {
+    "id": "bob-vitals-2026-10-01",
+    "userId": "bob",
+    "date": "2026-10-01",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 88.2,
+      "systolic": 128,
+      "diastolic": 85,
+      "spo2": 97
+    }
+  },
+  {
+    "id": "bob-vitals-2026-10-02",
+    "userId": "bob",
+    "date": "2026-10-02",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 88.6,
+      "systolic": 130,
+      "diastolic": 84,
+      "spo2": 97
+    }
+  },
+  {
+    "id": "bob-vitals-2026-10-03",
+    "userId": "bob",
+    "date": "2026-10-03",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 88.2,
+      "systolic": 139,
+      "diastolic": 86,
+      "spo2": 96
+    }
+  },
+  {
+    "id": "bob-vitals-2026-10-04",
+    "userId": "bob",
+    "date": "2026-10-04",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 87.9,
+      "systolic": 140,
+      "diastolic": 87,
+      "spo2": 95
+    }
+  },
+  {
+    "id": "bob-vitals-2026-10-05",
+    "userId": "bob",
+    "date": "2026-10-05",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 88.3,
+      "systolic": 129,
+      "diastolic": 82,
+      "spo2": 96
+    }
+  },
+  {
+    "id": "bob-vitals-2026-10-06",
+    "userId": "bob",
+    "date": "2026-10-06",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 87.8,
+      "systolic": 128,
+      "diastolic": 88,
+      "spo2": 95
+    }
+  },
+  {
+    "id": "bob-vitals-2026-10-07",
+    "userId": "bob",
+    "date": "2026-10-07",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 87.9,
+      "systolic": 139,
+      "diastolic": 85,
+      "spo2": 99
+    }
+  },
+  {
+    "id": "bob-vitals-2026-10-08",
+    "userId": "bob",
+    "date": "2026-10-08",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 87.6,
+      "systolic": 140,
+      "diastolic": 83,
+      "spo2": 96
+    }
+  },
+  {
+    "id": "bob-vitals-2026-10-09",
+    "userId": "bob",
+    "date": "2026-10-09",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 88.3,
+      "systolic": 133,
+      "diastolic": 91,
+      "spo2": 97
+    }
+  },
+  {
+    "id": "bob-vitals-2026-10-10",
+    "userId": "bob",
+    "date": "2026-10-10",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 88.1,
+      "systolic": 129,
+      "diastolic": 85,
+      "spo2": 96
+    }
+  },
+  {
+    "id": "bob-vitals-2026-10-11",
+    "userId": "bob",
+    "date": "2026-10-11",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 88.5,
+      "systolic": 134,
+      "diastolic": 83,
+      "spo2": 95
+    }
+  },
+  {
+    "id": "bob-vitals-2026-10-12",
+    "userId": "bob",
+    "date": "2026-10-12",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 88.4,
+      "systolic": 142,
+      "diastolic": 87,
+      "spo2": 95
+    }
+  },
+  {
+    "id": "bob-vitals-2026-10-13",
+    "userId": "bob",
+    "date": "2026-10-13",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 88.2,
+      "systolic": 140,
+      "diastolic": 85,
+      "spo2": 95
+    }
+  },
+  {
+    "id": "bob-vitals-2026-10-14",
+    "userId": "bob",
+    "date": "2026-10-14",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 88.3,
+      "systolic": 131,
+      "diastolic": 87,
+      "spo2": 97
+    }
+  },
+  {
+    "id": "bob-vitals-2026-10-15",
+    "userId": "bob",
+    "date": "2026-10-15",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 88.0,
+      "systolic": 130,
+      "diastolic": 85,
+      "spo2": 99
+    }
+  },
+  {
+    "id": "bob-vitals-2026-10-16",
+    "userId": "bob",
+    "date": "2026-10-16",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 88.4,
+      "systolic": 128,
+      "diastolic": 91,
+      "spo2": 97
+    }
+  },
+  {
+    "id": "bob-vitals-2026-10-17",
+    "userId": "bob",
+    "date": "2026-10-17",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 88.5,
+      "systolic": 131,
+      "diastolic": 85,
+      "spo2": 97
+    }
+  },
+  {
+    "id": "bob-vitals-2026-10-18",
+    "userId": "bob",
+    "date": "2026-10-18",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 88.0,
+      "systolic": 140,
+      "diastolic": 92,
+      "spo2": 98
+    }
+  },
+  {
+    "id": "bob-vitals-2026-10-19",
+    "userId": "bob",
+    "date": "2026-10-19",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 88.2,
+      "systolic": 128,
+      "diastolic": 82,
+      "spo2": 96
+    }
+  },
+  {
+    "id": "bob-vitals-2026-10-20",
+    "userId": "bob",
+    "date": "2026-10-20",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 87.4,
+      "systolic": 139,
+      "diastolic": 88,
+      "spo2": 96
+    }
+  },
+  {
+    "id": "bob-vitals-2026-10-21",
+    "userId": "bob",
+    "date": "2026-10-21",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 87.6,
+      "systolic": 142,
+      "diastolic": 92,
+      "spo2": 97
+    }
+  },
+  {
+    "id": "bob-vitals-2026-10-22",
+    "userId": "bob",
+    "date": "2026-10-22",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 88.2,
+      "systolic": 139,
+      "diastolic": 87,
+      "spo2": 96
+    }
+  },
+  {
+    "id": "bob-vitals-2026-10-23",
+    "userId": "bob",
+    "date": "2026-10-23",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 88.1,
+      "systolic": 129,
+      "diastolic": 90,
+      "spo2": 99
+    }
+  },
+  {
+    "id": "bob-vitals-2026-10-24",
+    "userId": "bob",
+    "date": "2026-10-24",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 87.7,
+      "systolic": 130,
+      "diastolic": 87,
+      "spo2": 99
+    }
+  },
+  {
+    "id": "bob-vitals-2026-10-25",
+    "userId": "bob",
+    "date": "2026-10-25",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 88.3,
+      "systolic": 134,
+      "diastolic": 92,
+      "spo2": 97
+    }
+  },
+  {
+    "id": "bob-vitals-2026-10-26",
+    "userId": "bob",
+    "date": "2026-10-26",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 87.8,
+      "systolic": 135,
+      "diastolic": 85,
+      "spo2": 95
+    }
+  },
+  {
+    "id": "bob-vitals-2026-10-27",
+    "userId": "bob",
+    "date": "2026-10-27",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 88.0,
+      "systolic": 142,
+      "diastolic": 91,
+      "spo2": 96
+    }
+  },
+  {
+    "id": "bob-vitals-2026-10-28",
+    "userId": "bob",
+    "date": "2026-10-28",
+    "documentType": "vitals",
+    "vitals": {
+      "weightKg": 88.3,
+      "systolic": 139,
+      "diastolic": 90,
+      "spo2": 97
+    }
+  }
+]

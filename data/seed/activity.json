@@ -1,0 +1,782 @@
+[
+  {
+    "id": "alice-activity-2026-09-29",
+    "userId": "alice",
+    "date": "2026-09-29",
+    "documentType": "activity",
+    "activity": {
+      "steps": 11771,
+      "distanceKm": 8.83,
+      "caloriesOut": 2388,
+      "activeMinutes": 78,
+      "restingHeartRate": 65
+    }
+  },
+  {
+    "id": "alice-activity-2026-09-30",
+    "userId": "alice",
+    "date": "2026-09-30",
+    "documentType": "activity",
+    "activity": {
+      "steps": 9206,
+      "distanceKm": 6.9,
+      "caloriesOut": 2260,
+      "activeMinutes": 61,
+      "restingHeartRate": 59
+    }
+  },
+  {
+    "id": "alice-activity-2026-10-01",
+    "userId": "alice",
+    "date": "2026-10-01",
+    "documentType": "activity",
+    "activity": {
+      "steps": 6731,
+      "distanceKm": 5.05,
+      "caloriesOut": 2136,
+      "activeMinutes": 44,
+      "restingHeartRate": 57
+    }
+  },
+  {
+    "id": "alice-activity-2026-10-02",
+    "userId": "alice",
+    "date": "2026-10-02",
+    "documentType": "activity",
+    "activity": {
+      "steps": 10289,
+      "distanceKm": 7.72,
+      "caloriesOut": 2314,
+      "activeMinutes": 68,
+      "restingHeartRate": 62
+    }
+  },
+  {
+    "id": "alice-activity-2026-10-03",
+    "userId": "alice",
+    "date": "2026-10-03",
+    "documentType": "activity",
+    "activity": {
+      "steps": 10311,
+      "distanceKm": 7.73,
+      "caloriesOut": 2315,
+      "activeMinutes": 68,
+      "restingHeartRate": 60
+    }
+  },
+  {
+    "id": "alice-activity-2026-10-04",
+    "userId": "alice",
+    "date": "2026-10-04",
+    "documentType": "activity",
+    "activity": {
+      "steps": 8575,
+      "distanceKm": 6.43,
+      "caloriesOut": 2228,
+      "activeMinutes": 57,
+      "restingHeartRate": 56
+    }
+  },
+  {
+    "id": "alice-activity-2026-10-05",
+    "userId": "alice",
+    "date": "2026-10-05",
+    "documentType": "activity",
+    "activity": {
+      "steps": 7610,
+      "distanceKm": 5.71,
+      "caloriesOut": 2180,
+      "activeMinutes": 50,
+      "restingHeartRate": 66
+    }
+  },
+  {
+    "id": "alice-activity-2026-10-06",
+    "userId": "alice",
+    "date": "2026-10-06",
+    "documentType": "activity",
+    "activity": {
+      "steps": 6915,
+      "distanceKm": 5.19,
+      "caloriesOut": 2145,
+      "activeMinutes": 46,
+      "restingHeartRate": 64
+    }
+  },
+  {
+    "id": "alice-activity-2026-10-07",
+    "userId": "alice",
+    "date": "2026-10-07",
+    "documentType": "activity",
+    "activity": {
+      "steps": 7846,
+      "distanceKm": 5.88,
+      "caloriesOut": 2192,
+      "activeMinutes": 52,
+      "restingHeartRate": 63
+    }
+  },
+  {
+    "id": "alice-activity-2026-10-08",
+    "userId": "alice",
+    "date": "2026-10-08",
+    "documentType": "activity",
+    "activity": {
+      "steps": 9284,
+      "distanceKm": 6.96,
+      "caloriesOut": 2264,
+      "activeMinutes": 61,
+      "restingHeartRate": 64
+    }
+  },
+  {
+    "id": "alice-activity-2026-10-09",
+    "userId": "alice",
+    "date": "2026-10-09",
+    "documentType": "activity",
+    "activity": {
+      "steps": 9009,
+      "distanceKm": 6.76,
+      "caloriesOut": 2250,
+      "activeMinutes": 60,
+      "restingHeartRate": 60
+    }
+  },
+  {
+    "id": "alice-activity-2026-10-10",
+    "userId": "alice",
+    "date": "2026-10-10",
+    "documentType": "activity",
+    "activity": {
+      "steps": 8587,
+      "distanceKm": 6.44,
+      "caloriesOut": 2229,
+      "activeMinutes": 57,
+      "restingHeartRate": 60
+    }
+  },
+  {
+    "id": "alice-activity-2026-10-11",
+    "userId": "alice",
+    "date": "2026-10-11",
+    "documentType": "activity",
+    "activity": {
+      "steps": 7880,
+      "distanceKm": 5.91,
+      "caloriesOut": 2194,
+      "activeMinutes": 52,
+      "restingHeartRate": 64
+    }
+  },
+  {
+    "id": "alice-activity-2026-10-12",
+    "userId": "alice",
+    "date": "2026-10-12",
+    "documentType": "activity",
+    "activity": {
+      "steps": 6252,
+      "distanceKm": 4.69,
+      "caloriesOut": 2112,
+      "activeMinutes": 41,
+      "restingHeartRate": 58
+    }
+  },
+  {
+    "id": "alice-activity-2026-10-13",
+    "userId": "alice",
+    "date": "2026-10-13",
+    "documentType": "activity",
+    "activity": {
+      "steps": 7939,
+      "distanceKm": 5.95,
+      "caloriesOut": 2196,
+      "activeMinutes": 52,
+      "restingHeartRate": 64
+    }
+  },
+  {
+    "id": "alice-activity-2026-10-14",
+    "userId": "alice",
+    "date": "2026-10-14",
+    "documentType": "activity",
+    "activity": {
+      "steps": 9438,
+      "distanceKm": 7.08,
+      "caloriesOut": 2271,
+      "activeMinutes": 62,
+      "restingHeartRate": 66
+    }
+  },
+  {
+    "id": "alice-activity-2026-10-15",
+    "userId": "alice",
+    "date": "2026-10-15",
+    "documentType": "activity",
+    "activity": {
+      "steps": 9597,
+      "distanceKm": 7.2,
+      "caloriesOut": 2279,
+      "activeMinutes": 63,
+      "restingHeartRate": 56
+    }
+  },
+  {
+    "id": "alice-activity-2026-10-16",
+    "userId": "alice",
+    "date": "2026-10-16",
+    "documentType": "activity",
+    "activity": {
+      "steps": 11047,
+      "distanceKm": 8.29,
+      "caloriesOut": 2352,
+      "activeMinutes": 73,
+      "restingHeartRate": 61
+    }
+  },
+  {
+    "id": "alice-activity-2026-10-17",
+    "userId": "alice",
+    "date": "2026-10-17",
+    "documentType": "activity",
+    "activity": {
+      "steps": 6100,
+      "distanceKm": 4.58,
+      "caloriesOut": 2105,
+      "activeMinutes": 40,
+      "restingHeartRate": 64
+    }
+  },
+  {
+    "id": "alice-activity-2026-10-18",
+    "userId": "alice",
+    "date": "2026-10-18",
+    "documentType": "activity",
+    "activity": {
+      "steps": 5089,
+      "distanceKm": 3.82,
+      "caloriesOut": 2054,
+      "activeMinutes": 33,
+      "restingHeartRate": 61
+    }
+  },
+  {
+    "id": "alice-activity-2026-10-19",
+    "userId": "alice",
+    "date": "2026-10-19",
+    "documentType": "activity",
+    "activity": {
+      "steps": 7262,
+      "distanceKm": 5.45,
+      "caloriesOut": 2163,
+      "activeMinutes": 48,
+      "restingHeartRate": 61
+    }
+  },
+  {
+    "id": "alice-activity-2026-10-20",
+    "userId": "alice",
+    "date": "2026-10-20",
+    "documentType": "activity",
+    "activity": {
+      "steps": 7666,
+      "distanceKm": 5.75,
+      "caloriesOut": 2183,
+      "activeMinutes": 51,
+      "restingHeartRate": 58
+    }
+  },
+  {
+    "id": "alice-activity-2026-10-21",
+    "userId": "alice",
+    "date": "2026-10-21",
+    "documentType": "activity",
+    "activity": {
+      "steps": 7195,
+      "distanceKm": 5.4,
+      "caloriesOut": 2159,
+      "activeMinutes": 47,
+      "restingHeartRate": 58
+    }
+  },
+  {
+    "id": "alice-activity-2026-10-22",
+    "userId": "alice",
+    "date": "2026-10-22",
+    "documentType": "activity",
+    "activity": {
+      "steps": 8191,
+      "distanceKm": 6.14,
+      "caloriesOut": 2209,
+      "activeMinutes": 54,
+      "restingHeartRate": 57
+    }
+  },
+  {
+    "id": "alice-activity-2026-10-23",
+    "userId": "alice",
+    "date": "2026-10-23",
+    "documentType": "activity",
+    "activity": {
+      "steps": 10212,
+      "distanceKm": 7.66,
+      "caloriesOut": 2310,
+      "activeMinutes": 68,
+      "restingHeartRate": 59
+    }
+  },
+  {
+    "id": "alice-activity-2026-10-24",
+    "userId": "alice",
+    "date": "2026-10-24",
+    "documentType": "activity",
+    "activity": {
+      "steps": 7651,
+      "distanceKm": 5.74,
+      "caloriesOut": 2182,
+      "activeMinutes": 51,
+      "restingHeartRate": 60
+    }
+  },
+  {
+    "id": "alice-activity-2026-10-25",
+    "userId": "alice",
+    "date": "2026-10-25",
+    "documentType": "activity",
+    "activity": {
+      "steps": 8755,
+      "distanceKm": 6.57,
+      "caloriesOut": 2237,
+      "activeMinutes": 58,
+      "restingHeartRate": 64
+    }
+  },
+  {
+    "id": "alice-activity-2026-10-26",
+    "userId": "alice",
+    "date": "2026-10-26",
+    "documentType": "activity",
+    "activity": {
+      "steps": 5744,
+      "distanceKm": 4.31,
+      "caloriesOut": 2087,
+      "activeMinutes": 38,
+      "restingHeartRate": 65
+    }
+  },
+  {
+    "id": "alice-activity-2026-10-27",
+    "userId": "alice",
+    "date": "2026-10-27",
+    "documentType": "activity",
+    "activity": {
+      "steps": 10979,
+      "distanceKm": 8.23,
+      "caloriesOut": 2348,
+      "activeMinutes": 73,
+      "restingHeartRate": 66
+    }
+  },
+  {
+    "id": "alice-activity-2026-10-28",
+    "userId": "alice",
+    "date": "2026-10-28",
+    "documentType": "activity",
+    "activity": {
+      "steps": 13540,
+      "distanceKm": 10.15,
+      "caloriesOut": 2477,
+      "activeMinutes": 90,
+      "restingHeartRate": 60
+    }
+  },
+  {
+    "id": "bob-activity-2026-09-29",
+    "userId": "bob",
+    "date": "2026-09-29",
+    "documentType": "activity",
+    "activity": {
+      "steps": 8731,
+      "distanceKm": 6.55,
+      "caloriesOut": 2236,
+      "activeMinutes": 58,
+      "restingHeartRate": 70
+    }
+  },
+  {
+    "id": "bob-activity-2026-09-30",
+    "userId": "bob",
+    "date": "2026-09-30",
+    "documentType": "activity",
+    "activity": {
+      "steps": 3728,
+      "distanceKm": 2.8,
+      "caloriesOut": 1986,
+      "activeMinutes": 24,
+      "restingHeartRate": 68
+    }
+  },
+  {
+    "id": "bob-activity-2026-10-01",
+    "userId": "bob",
+    "date": "2026-10-01",
+    "documentType": "activity",
+    "activity": {
+      "steps": 5622,
+      "distanceKm": 4.22,
+      "caloriesOut": 2081,
+      "activeMinutes": 37,
+      "restingHeartRate": 74
+    }
+  },
+  {
+    "id": "bob-activity-2026-10-02",
+    "userId": "bob",
+    "date": "2026-10-02",
+    "documentType": "activity",
+    "activity": {
+      "steps": 4411,
+      "distanceKm": 3.31,
+      "caloriesOut": 2020,
+      "activeMinutes": 29,
+      "restingHeartRate": 71
+    }
+  },
+  {
+    "id": "bob-activity-2026-10-03",
+    "userId": "bob",
+    "date": "2026-10-03",
+    "documentType": "activity",
+    "activity": {
+      "steps": 9277,
+      "distanceKm": 6.96,
+      "caloriesOut": 2263,
+      "activeMinutes": 61,
+      "restingHeartRate": 68
+    }
+  },
+  {
+    "id": "bob-activity-2026-10-04",
+    "userId": "bob",
+    "date": "2026-10-04",
+    "documentType": "activity",
+    "activity": {
+      "steps": 5421,
+      "distanceKm": 4.07,
+      "caloriesOut": 2071,
+      "activeMinutes": 36,
+      "restingHeartRate": 72
+    }
+  },
+  {
+    "id": "bob-activity-2026-10-05",
+    "userId": "bob",
+    "date": "2026-10-05",
+    "documentType": "activity",
+    "activity": {
+      "steps": 5433,
+      "distanceKm": 4.07,
+      "caloriesOut": 2071,
+      "activeMinutes": 36,
+      "restingHeartRate": 73
+    }
+  },
+  {
+    "id": "bob-activity-2026-10-06",
+    "userId": "bob",
+    "date": "2026-10-06",
+    "documentType": "activity",
+    "activity": {
+      "steps": 6343,
+      "distanceKm": 4.76,
+      "caloriesOut": 2117,
+      "activeMinutes": 42,
+      "restingHeartRate": 67
+    }
+  },
+  {
+    "id": "bob-activity-2026-10-07",
+    "userId": "bob",
+    "date": "2026-10-07",
+    "documentType": "activity",
+    "activity": {
+      "steps": 5337,
+      "distanceKm": 4.0,
+      "caloriesOut": 2066,
+      "activeMinutes": 35,
+      "restingHeartRate": 71
+    }
+  },
+  {
+    "id": "bob-activity-2026-10-08",
+    "userId": "bob",
+    "date": "2026-10-08",
+    "documentType": "activity",
+    "activity": {
+      "steps": 8318,
+      "distanceKm": 6.24,
+      "caloriesOut": 2215,
+      "activeMinutes": 55,
+      "restingHeartRate": 68
+    }
+  },
+  {
+    "id": "bob-activity-2026-10-09",
+    "userId": "bob",
+    "date": "2026-10-09",
+    "documentType": "activity",
+    "activity": {
+      "steps": 7895,
+      "distanceKm": 5.92,
+      "caloriesOut": 2194,
+      "activeMinutes": 52,
+      "restingHeartRate": 64
+    }
+  },
+  {
+    "id": "bob-activity-2026-10-10",
+    "userId": "bob",
+    "date": "2026-10-10",
+    "documentType": "activity",
+    "activity": {
+      "steps": 6877,
+      "distanceKm": 5.16,
+      "caloriesOut": 2143,
+      "activeMinutes": 45,
+      "restingHeartRate": 65
+    }
+  },
+  {
+    "id": "bob-activity-2026-10-11",
+    "userId": "bob",
+    "date": "2026-10-11",
+    "documentType": "activity",
+    "activity": {
+      "steps": 3252,
+      "distanceKm": 2.44,
+      "caloriesOut": 1962,
+      "activeMinutes": 21,
+      "restingHeartRate": 73
+    }
+  },
+  {
+    "id": "bob-activity-2026-10-12",
+    "userId": "bob",
+    "date": "2026-10-12",
+    "documentType": "activity",
+    "activity": {
+      "steps": 7706,
+      "distanceKm": 5.78,
+      "caloriesOut": 2185,
+      "activeMinutes": 51,
+      "restingHeartRate": 70
+    }
+  },
+  {
+    "id": "bob-activity-2026-10-13",
+    "userId": "bob",
+    "date": "2026-10-13",
+    "documentType": "activity",
+    "activity": {
+      "steps": 2604,
+      "distanceKm": 1.95,
+      "caloriesOut": 1930,
+      "activeMinutes": 17,
+      "restingHeartRate": 64
+    }
+  },
+  {
+    "id": "bob-activity-2026-10-14",
+    "userId": "bob",
+    "date": "2026-10-14",
+    "documentType": "activity",
+    "activity": {
+      "steps": 7935,
+      "distanceKm": 5.95,
+      "caloriesOut": 2196,
+      "activeMinutes": 52,
+      "restingHeartRate": 73
+    }
+  },
+  {
+    "id": "bob-activity-2026-10-15",
+    "userId": "bob",
+    "date": "2026-10-15",
+    "documentType": "activity",
+    "activity": {
+      "steps": 5530,
+      "distanceKm": 4.15,
+      "caloriesOut": 2076,
+      "activeMinutes": 36,
+      "restingHeartRate": 70
+    }
+  },
+  {
+    "id": "bob-activity-2026-10-16",
+    "userId": "bob",
+    "date": "2026-10-16",
+    "documentType": "activity",
+    "activity": {
+      "steps": 6253,
+      "distanceKm": 4.69,
+      "caloriesOut": 2112,
+      "activeMinutes": 41,
+      "restingHeartRate": 64
+    }
+  },
+  {
+    "id": "bob-activity-2026-10-17",
+    "userId": "bob",
+    "date": "2026-10-17",
+    "documentType": "activity",
+    "activity": {
+      "steps": 8368,
+      "distanceKm": 6.28,
+      "caloriesOut": 2218,
+      "activeMinutes": 55,
+      "restingHeartRate": 71
+    }
+  },
+  {
+    "id": "bob-activity-2026-10-18",
+    "userId": "bob",
+    "date": "2026-10-18",
+    "documentType": "activity",
+    "activity": {
+      "steps": 7572,
+      "distanceKm": 5.68,
+      "caloriesOut": 2178,
+      "activeMinutes": 50,
+      "restingHeartRate": 68
+    }
+  },
+  {
+    "id": "bob-activity-2026-10-19",
+    "userId": "bob",
+    "date": "2026-10-19",
+    "documentType": "activity",
+    "activity": {
+      "steps": 3715,
+      "distanceKm": 2.79,
+      "caloriesOut": 1985,
+      "activeMinutes": 24,
+      "restingHeartRate": 68
+    }
+  },
+  {
+    "id": "bob-activity-2026-10-20",
+    "userId": "bob",
+    "date": "2026-10-20",
+    "documentType": "activity",
+    "activity": {
+      "steps": 7879,
+      "distanceKm": 5.91,
+      "caloriesOut": 2193,
+      "activeMinutes": 52,
+      "restingHeartRate": 72
+    }
+  },
+  {
+    "id": "bob-activity-2026-10-21",
+    "userId": "bob",
+    "date": "2026-10-21",
+    "documentType": "activity",
+    "activity": {
+      "steps": 4792,
+      "distanceKm": 3.59,
+      "caloriesOut": 2039,
+      "activeMinutes": 31,
+      "restingHeartRate": 72
+    }
+  },
+  {
+    "id": "bob-activity-2026-10-22",
+    "userId": "bob",
+    "date": "2026-10-22",
+    "documentType": "activity",
+    "activity": {
+      "steps": 6849,
+      "distanceKm": 5.14,
+      "caloriesOut": 2142,
+      "activeMinutes": 45,
+      "restingHeartRate": 66
+    }
+  },
+  {
+    "id": "bob-activity-2026-10-23",
+    "userId": "bob",
+    "date": "2026-10-23",
+    "documentType": "activity",
+    "activity": {
+      "steps": 9429,
+      "distanceKm": 7.07,
+      "caloriesOut": 2271,
+      "activeMinutes": 62,
+      "restingHeartRate": 66
+    }
+  },
+  {
+    "id": "bob-activity-2026-10-24",
+    "userId": "bob",
+    "date": "2026-10-24",
+    "documentType": "activity",
+    "activity": {
+      "steps": 6325,
+      "distanceKm": 4.74,
+      "caloriesOut": 2116,
+      "activeMinutes": 42,
+      "restingHeartRate": 65
+    }
+  },
+  {
+    "id": "bob-activity-2026-10-25",
+    "userId": "bob",
+    "date": "2026-10-25",
+    "documentType": "activity",
+    "activity": {
+      "steps": 2851,
+      "distanceKm": 2.14,
+      "caloriesOut": 1942,
+      "activeMinutes": 19,
+      "restingHeartRate": 68
+    }
+  },
+  {
+    "id": "bob-activity-2026-10-26",
+    "userId": "bob",
+    "date": "2026-10-26",
+    "documentType": "activity",
+    "activity": {
+      "steps": 2441,
+      "distanceKm": 1.83,
+      "caloriesOut": 1922,
+      "activeMinutes": 16,
+      "restingHeartRate": 69
+    }
+  },
+  {
+    "id": "bob-activity-2026-10-27",
+    "userId": "bob",
+    "date": "2026-10-27",
+    "documentType": "activity",
+    "activity": {
+      "steps": 7374,
+      "distanceKm": 5.53,
+      "caloriesOut": 2168,
+      "activeMinutes": 49,
+      "restingHeartRate": 66
+    }
+  },
+  {
+    "id": "bob-activity-2026-10-28",
+    "userId": "bob",
+    "date": "2026-10-28",
+    "documentType": "activity",
+    "activity": {
+      "steps": 9004,
+      "distanceKm": 6.75,
+      "caloriesOut": 2250,
+      "activeMinutes": 60,
+      "restingHeartRate": 71
+    }
+  }
+]

@@ -1,0 +1,22 @@
+FROM docker.io/library/python:3.12-slim
+
+COPY --from=ghcr.io/astral-sh/uv:0.9.28 /uv /usr/local/bin/uv
+
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+COPY pyproject.toml uv.lock README.md ./
+RUN uv sync --frozen --no-dev --no-install-project
+
+COPY src ./src
+RUN uv sync --frozen --no-dev
+
+ENV PATH="/app/.venv/bin:${PATH}"
+
+# One image for every service; each Compose service selects its module with
+# command: ["python", "-m", "<module>"]. (Podman reuses cached ENV layers across
+# build-arg values, so a build-time MODULE argument is not reliable.)
+CMD ["python", "-m", "chat_api"]

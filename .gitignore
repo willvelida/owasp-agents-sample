@@ -221,3 +221,10 @@ __marimo__/
 
 # Copilot planning and tracking files
 .copilot-tracking/
+
+# OWASP agents sample
+.secrets/
+.azure/
+*.duckdb
+*.sqlite
+pyrit_results/

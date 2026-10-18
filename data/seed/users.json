@@ -1,0 +1,12 @@
+[
+  {
+    "userId": "alice",
+    "displayName": "Alice Example",
+    "timezone": "Australia/Sydney"
+  },
+  {
+    "userId": "bob",
+    "displayName": "Bob Example",
+    "timezone": "Australia/Sydney"
+  }
+]

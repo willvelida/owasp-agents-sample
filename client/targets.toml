@@ -1,0 +1,10 @@
+# AG-UI targets for biotrackr-chat. Select with --target <name>.
+#
+# auth:
+#   header  S0 starter: sends X-User-Id with the --as user. No token (ASI03 weakness on the server side).
+#   entra   S1 solution: Entra device-code sign-in (not implemented yet).
+#   local   S1 solution offline: stage-only identity simulator (not implemented yet).
+
+[starter]
+url = "http://127.0.0.1:8000/"
+auth = "header"
