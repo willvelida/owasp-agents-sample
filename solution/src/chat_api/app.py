@@ -1,0 +1,77 @@
+"""FastAPI host: AG-UI endpoint, conversation endpoints, and liveness."""
+
+import logging
+import os
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from typing import Annotated, Any
+
+import uvicorn
+from agent_framework.ag_ui import add_agent_framework_fastapi_endpoint
+from fastapi import Depends, FastAPI, HTTPException
+
+from chat_api.auth import Principal, RequireUser, build_validator, snapshot_scope
+
+
+def create_app(agent: Any, store: Any, require_user: RequireUser) -> FastAPI:
+    @asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        yield
+        await store.close()
+
+    app = FastAPI(title="Biotrackr Chat API (solution)", lifespan=lifespan)
+
+    # ASI03: bearer validation runs before the handler, and the snapshot scope binds threads to the oid,
+    # so one user's thread id resolves to a different session for anyone else.
+    add_agent_framework_fastapi_endpoint(
+        app,
+        agent,
+        "/",
+        dependencies=[Depends(require_user)],
+        snapshot_scope_resolver=snapshot_scope,
+    )
+
+    @app.get("/healthz/liveness")
+    async def liveness() -> dict[str, str]:
+        return {"status": "ok"}
+
+    # ASI03: conversation endpoints only ever see the caller's own sessions.
+    @app.get("/conversations")
+    async def list_conversations(principal: Annotated[Principal, Depends(require_user)]) -> list[dict]:
+        return await store.list_for(principal.oid)
+
+    @app.get("/conversations/{session_id}")
+    async def get_conversation(session_id: str, principal: Annotated[Principal, Depends(require_user)]) -> dict:
+        doc = await store.get_owned(session_id, principal.oid)
+        if doc is None:
+            raise HTTPException(status_code=404)
+        return doc
+
+    @app.delete("/conversations/{session_id}", status_code=204)
+    async def delete_conversation(session_id: str, principal: Annotated[Principal, Depends(require_user)]) -> None:
+        if not await store.delete_owned(session_id, principal.oid):
+            raise HTTPException(status_code=404)
+
+    return app
+
+
+def build_app() -> FastAPI:
+    from agent_framework.observability import configure_otel_providers
+
+    from chat_api.agent import build_agent
+    from chat_api.history import CosmosConversationStore, CosmosHistoryProvider
+
+    # ASI10 (starter): prompts, tool arguments, and health data are written into traces.
+    configure_otel_providers(service_name="biotrackr-chat-api", enable_sensitive_data=True)
+    store = CosmosConversationStore()
+    return create_app(build_agent(CosmosHistoryProvider(store)), store, RequireUser(build_validator()))
+
+
+def main() -> None:
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
+    logging.getLogger("azure").setLevel(logging.WARNING)
+    uvicorn.run(build_app(), host=os.environ.get("HOST", "0.0.0.0"), port=int(os.environ.get("PORT", "8000")))
+
+
+if __name__ == "__main__":
+    main()

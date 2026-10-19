@@ -15,9 +15,11 @@ Python has no first-party Agent ID library. The Microsoft Entra SDK for AgentID 
 
 ## Decision
 
-* Locally, run the sidecar in Compose on a dedicated `sidecar-net` network shared only with `chat-api`, plus a separate egress network that no other service joins, so it can reach Entra. No published port; a dev client secret on the Blueprint.
+* Locally, run the sidecar in Compose inside `chat-api`'s network namespace (`network_mode: service:chat-api`), listening on `127.0.0.1:5000` only. No published port; a dev client secret on the Blueprint.
 * On Azure, run it as a second container in the chat API container app, using a federated identity credential on the Blueprint for the user-assigned managed identity.
 * Configure only the chat agent's identity as usable, and test that other services cannot connect.
+
+Amended on 2026-10-18 (slice S1): the sidecar rejects non-loopback callers (HTTP 403) outside the Development environment, so the original dedicated `sidecar-net` plus egress network could not work. Sharing chat-api's namespace matches the Container Apps replica and leaves no network path from other services. The published image is amd64 only, so Compose builds it from a pinned upstream commit for arm64 hosts; Azure uses the MCR image.
 
 ## Consequences
 

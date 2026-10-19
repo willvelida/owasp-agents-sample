@@ -7,7 +7,7 @@ ms.topic: reference
 
 ## Status
 
-Proposed on 2026-10-18.
+Accepted on 2026-10-18 (proposed earlier the same day). The clean-container token test passed in slice S1: `DefaultAzureCredential` inside `chat-api` obtained a `https://cognitiveservices.azure.com/.default` token from the `azcli-cache` volume, and `/home/app/.azure` is owned by UID 10001.
 
 ## Context
 
@@ -15,14 +15,14 @@ Mounting the Azure CLI cache alone does not make `DefaultAzureCredential` work, 
 
 ## Decision
 
-Proposed default (revised for Podman on a Windows host, see [ADR-0024](0024-podman-container-engine.md)):
+Decision (originally proposed, revised for Podman on a Windows host, see [ADR-0024](0024-podman-container-engine.md)):
 
 * A `dev` Containerfile stage installs Azure CLI, creates `/home/app/.azure` owned by UID 10001, and runs as UID 10001.
 * A one-shot `az-login` Compose service, built from the same `dev` stage, runs `az login --use-device-code` once and writes the token cache to a named volume, `azcli-cache`, which inherits UID 10001 ownership.
 * The volume is mounted read-write at `/home/app/.azure` in `chat-api` and `report-agent`, because `az` refreshes its token cache on each request. This applies to the local dev profile only.
 * The host's `%USERPROFILE%\.azure` is not mounted, because the Windows token cache is DPAPI-encrypted and unreadable in Linux.
 
-If that fails the clean-container token test in slice S1, use a dev-only service principal with Foundry and Cosmos data-plane RBAC, consumed through `EnvironmentCredential`, with its secret in `solution/.secrets/`. Azure images use the production stage with managed identity only. This record moves to Accepted once the spike passes.
+The fallback, kept for reference, is a dev-only service principal with Foundry and Cosmos data-plane RBAC, consumed through `EnvironmentCredential`, with its secret in `solution/.secrets/`. Azure images use the production stage with managed identity only.
 
 ## Consequences
 

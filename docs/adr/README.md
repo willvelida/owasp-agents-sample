@@ -34,6 +34,6 @@ Each record captures one decision made while planning the sample, why it was mad
 | [0019](0019-fail-closed-control-contract.md)                   | Enforce a fail-closed contract for every solution control                      | Accepted |
 | [0020](0020-indirect-injection-containment.md)                 | Contain indirect prompt injection from tool results                            | Accepted |
 | [0021](0021-output-policy-for-clinical-advice.md)              | Screen agent replies for clinical advice                                       | Accepted |
-| [0022](0022-local-azure-credential-in-compose.md)              | Provide Azure credentials to solution containers in Compose                    | Proposed |
+| [0022](0022-local-azure-credential-in-compose.md)              | Provide Azure credentials to solution containers in Compose                    | Accepted |
 | [0023](0023-vertical-slices-with-tagged-checkpoints.md)        | Deliver in vertical slices with tagged checkpoints                             | Accepted |
 | [0024](0024-podman-container-engine.md)                        | Use Podman as the container engine                                             | Accepted |

@@ -1,0 +1,164 @@
+name: biotrackr-solution
+
+# Entra mode (default):  podman compose up --build -d
+# Offline mode:          $env:IDENTITY_MODE = "local"; podman compose --profile offline up --build -d
+# One-time az login:     podman compose --profile login run --rm az-login
+
+x-app: &app
+  image: localhost/biotrackr-solution:dev
+  build:
+    context: .
+    dockerfile: Containerfile
+    # The dev stage adds Azure CLI for DefaultAzureCredential; Azure images use the runtime stage.
+    target: dev
+  env_file: .env
+  environment: &app-env
+    COSMOS_ENDPOINT: http://cosmos:8081
+    COSMOS_DATABASE: biotrackr
+    IDENTITY_MODE: ${IDENTITY_MODE:-entra}
+    LOCAL_ISSUER_URL: http://local-issuer:8100
+  read_only: true
+  tmpfs:
+    - /tmp
+  cap_drop: [ALL]
+  security_opt:
+    - no-new-privileges:true
+
+services:
+  cosmos:
+    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-latest
+    ports:
+      - "127.0.0.1:8081:8081"
+      - "127.0.0.1:1234:1234"
+    networks: [app]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/ready || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+
+  seed:
+    <<: *app
+    command: ["python", "-m", "seed"]
+    volumes:
+      - ../data/seed:/data/seed:ro
+    environment:
+      <<: *app-env
+      SEED_DIR: /data/seed
+    networks: [app]
+    depends_on:
+      cosmos:
+        condition: service_healthy
+    restart: "no"
+
+  health-mcp:
+    <<: *app
+    command: ["python", "-m", "health_mcp"]
+    environment:
+      <<: *app-env
+      MCP_ALLOWED_HOSTS: health-mcp:8001,health-mcp
+      MCP_RESOURCE_URL: http://health-mcp:8001/mcp
+    # ASI03: published for DevUI on the host only; every call still needs an OBO bearer token.
+    ports:
+      - "127.0.0.1:8001:8001"
+    networks: [app, identity]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/healthz')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+
+  chat-api:
+    <<: *app
+    command: ["python", "-m", "chat_api"]
+    environment:
+      <<: *app-env
+      MCP_URL: http://health-mcp:8001/mcp
+      SIDECAR_URL: http://localhost:5000
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      # ADR-0022: the developer's az login, cached by the az-login service. Read-write because az
+      # refreshes its MSAL cache on each token request. Dev profile only, never in an Azure image.
+      - azcli-cache:/home/app/.azure
+    networks: [app, identity]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz/liveness')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    depends_on:
+      health-mcp:
+        condition: service_healthy
+
+  # ASI03: Microsoft Entra SDK for AgentID. Performs OBO as the chat agent identity. It shares chat-api's
+  # network namespace and listens on 127.0.0.1 only (it rejects non-loopback callers), the same topology as
+  # the Container Apps replica. No published port, and no other service can reach it.
+  entra-sidecar:
+    # Built locally from a pinned upstream commit (sidecar/Containerfile) because the MCR image is
+    # amd64 only; Azure uses mcr.microsoft.com/entra-sdk/auth-sidecar.
+    image: localhost/entra-sidecar:local
+    build:
+      context: ./sidecar
+      dockerfile: Containerfile
+    env_file:
+      - path: .secrets/sidecar.env
+        required: false
+    environment:
+      ASPNETCORE_URLS: http://127.0.0.1:5000
+      AllowedHosts: localhost;127.0.0.1
+      AzureAd__Instance: https://login.microsoftonline.com/
+      AzureAd__TenantId: ${TENANT_ID:-}
+      AzureAd__ClientId: ${BLUEPRINT_APP_ID:-}
+      AzureAd__Audience: ${BLUEPRINT_APP_ID:-}
+      AzureAd__Scopes: access_as_user
+      # Local development only: the Blueprint dev secret from .secrets/sidecar.env. Azure uses a
+      # federated credential from the managed identity instead.
+      AzureAd__ClientCredentials__0__SourceType: ClientSecret
+      DownstreamApis__HealthMcp__BaseUrl: http://health-mcp:8001/
+      DownstreamApis__HealthMcp__Scopes__0: api://${HEALTH_MCP_APP_ID:-}/.default
+      DownstreamApis__HealthMcp__RequestAppToken: "false"
+      Logging__LogLevel__Default: Warning
+      Logging__LogLevel__Microsoft.Identity.Web: Information
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    network_mode: service:chat-api
+    depends_on:
+      - chat-api
+
+  # STAGE-ONLY identity simulator (ADR-0018). Offline profile only, host access on 127.0.0.1 only.
+  local-issuer:
+    <<: *app
+    profiles: [offline]
+    command: ["python", "-m", "local_issuer"]
+    ports:
+      - "127.0.0.1:8100:8100"
+    networks: [identity]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8100/healthz')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  az-login:
+    <<: *app
+    profiles: [login]
+    command: ["az", "login", "--use-device-code", "--tenant", "${TENANT_ID:-}"]
+    read_only: false
+    volumes:
+      - azcli-cache:/home/app/.azure
+    networks: [app]
+
+networks:
+  app: {}
+  identity: {}
+
+volumes:
+  azcli-cache: {}

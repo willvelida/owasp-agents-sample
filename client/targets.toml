@@ -1,10 +1,30 @@
 # AG-UI targets for biotrackr-chat. Select with --target <name>.
 #
 # auth:
-#   header  S0 starter: sends X-User-Id with the --as user. No token (ASI03 weakness on the server side).
-#   entra   S1 solution: Entra device-code sign-in (not implemented yet).
-#   local   S1 solution offline: stage-only identity simulator (not implemented yet).
+#   header  starter: sends X-User-Id with the --as user. No token (ASI03 weakness on the server side).
+#   entra   solution: device code sign-in as the demo CLI public client; token oid must match --as.
+#   local   solution offline: token from the stage-only identity simulator (127.0.0.1:8100).
+#
+# env_file (relative to this file) supplies TENANT_ID, CLI_APP_ID, BLUEPRINT_APP_ID, <USER>_OID, <USER>_UPN,
+# as written by solution/scripts/provision_agent_id.ps1 -WriteDotEnv.
 
 [starter]
 url = "http://127.0.0.1:8000/"
 auth = "header"
+
+[solution-local]
+url = "http://127.0.0.1:8000/"
+auth = "entra"
+env_file = "../solution/.env"
+
+[solution-offline]
+url = "http://127.0.0.1:8000/"
+auth = "local"
+issuer_url = "http://127.0.0.1:8100"
+env_file = "../solution/.env"
+
+[solution-azure]
+url_from_azd = "CHAT_API_URL"
+azd_cwd = "../solution"
+auth = "entra"
+env_file = "../solution/.env"

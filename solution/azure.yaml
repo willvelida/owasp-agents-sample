@@ -1,0 +1,50 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+# Solution only. The starter is never deployed to Azure (ADR-0005).
+name: biotrackr-owasp-solution
+metadata:
+  template: biotrackr-owasp-solution@0.1.0
+
+infra:
+  provider: bicep
+  path: infra
+
+services:
+  chat-api:
+    project: .
+    language: docker
+    host: containerapp
+    docker:
+      path: ./Containerfile
+      context: .
+      # Default stage: no Azure CLI, non-root. Images build in ACR.
+      target: runtime
+      remoteBuild: true
+  health-mcp:
+    project: .
+    language: docker
+    host: containerapp
+    docker:
+      path: ./Containerfile
+      context: .
+      target: runtime
+      remoteBuild: true
+
+hooks:
+  # Entra Agent ID objects first, so Bicep receives the typed IDs as parameters. azd checks Bicep inputs before
+  # preprovision runs, so a fresh `azd up` needs preup; preprovision keeps `azd provision` on its own working.
+  preup:
+    shell: pwsh
+    run: ./scripts/hooks/preprovision.ps1
+    interactive: true
+    continueOnError: false
+  preprovision:
+    shell: pwsh
+    run: ./scripts/hooks/preprovision.ps1
+    interactive: true
+    continueOnError: false
+  # Federated credential: Blueprint trusts the new managed identity.
+  postprovision:
+    shell: pwsh
+    run: ./scripts/hooks/postprovision.ps1
+    interactive: true
+    continueOnError: false

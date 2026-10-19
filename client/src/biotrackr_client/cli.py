@@ -12,10 +12,17 @@ from typing import Any
 import httpx
 from rich.console import Console
 
-from biotrackr_client.auth import headers_for
+from biotrackr_client.auth import AuthError, headers_for, resolve_url
 from biotrackr_client.render import Renderer
 
 console = Console()
+
+
+def targets_dir(path: Path | None) -> Path:
+    """Directory that relative paths in targets.toml (env_file, azd_cwd) resolve against."""
+    if path is not None:
+        return path.resolve().parent
+    return Path(__file__).resolve().parents[2]
 
 
 def load_targets(path: Path | None) -> dict[str, Any]:
@@ -72,18 +79,20 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     target = targets[args.target]
     thread_id = args.thread or str(uuid.uuid4())
+    base_dir = targets_dir(args.targets_file)
 
     try:
-        headers = headers_for(target.get("auth", "header"), args.user)
-    except NotImplementedError as exc:
+        url = resolve_url(target, base_dir)
+        headers = headers_for(target.get("auth", "header"), args.user, target, base_dir)
+    except AuthError as exc:
         console.print(f"[red]{exc}[/]")
         return 2
 
-    console.print(f"[dim]target={args.target} url={target['url']} as={args.user} thread={thread_id}[/]")
+    console.print(f"[dim]target={args.target} url={url} as={args.user} thread={thread_id}[/]")
     with httpx.Client(headers=headers, timeout=httpx.Timeout(120.0, connect=10.0)) as client:
         try:
             if args.message:
-                return 1 if send(client, target["url"], thread_id, " ".join(args.message)).error else 0
+                return 1 if send(client, url, thread_id, " ".join(args.message)).error else 0
             while True:
                 try:
                     message = console.input("[bold green]you>[/] ").strip()
@@ -92,7 +101,7 @@ def main(argv: list[str] | None = None) -> int:
                 if message in {"exit", "quit"}:
                     break
                 if message:
-                    send(client, target["url"], thread_id, message)
+                    send(client, url, thread_id, message)
         except httpx.HTTPError as exc:
             console.print(f"[bold red]connection error:[/] {exc}")
             return 1
