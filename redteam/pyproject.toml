@@ -1,0 +1,27 @@
+[project]
+name = "biotrackr-redteam"
+version = "0.1.0"
+description = "Shared PyRIT red-team harness for the Biotrackr starter and solution"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "pyrit==1.1.0",
+    "httpx==0.28.1",
+    "biotrackr-client",
+]
+
+[tool.uv.sources]
+biotrackr-client = { path = "../client", editable = true }
+
+[dependency-groups]
+dev = ["ruff==0.17.1"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/redteam"]
+
+[tool.ruff]
+extend = "../ruff.toml"

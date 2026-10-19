@@ -70,9 +70,9 @@ flowchart LR
     foundry["Microsoft Foundry<br/>DefaultAzureCredential"]
 
     subgraph compose["Podman Compose, rootless"]
-        subgraph sidecarnet["sidecar-net (chat-api only)"]
+        subgraph chatns["chat-api network namespace (Compose) or replica (Azure)"]
             chat["chat-api<br/>MAF Agent + AGT middleware<br/>JWT validation"]
-            sidecar["Entra SDK for AgentID<br/>sidecar, no published port"]
+            sidecar["Entra SDK for AgentID<br/>sidecar on 127.0.0.1 only"]
         end
         mcp["health-mcp<br/>12 read tools<br/>user from token oid"]
         report["report-agent (A2A)<br/>static check, fail-closed reviewer<br/>signed typed messages"]
@@ -99,7 +99,7 @@ flowchart LR
 
 ## Identity flow (ASI03)
 
-The MCP server derives the user from the on-behalf-of token, so a hijacked agent cannot request another user's data ([ADR-0013](adr/0013-entra-agent-id-obo.md), [ADR-0014](adr/0014-agent-id-sidecar.md)).
+The MCP server derives the user from the on-behalf-of token, so a hijacked agent cannot request another user's data ([ADR-0013](adr/0013-entra-agent-id-obo.md), [ADR-0014](adr/0014-agent-id-sidecar.md)). The sidecar accepts loopback callers only, so in Compose it shares chat-api's network namespace, the same topology as the Container Apps replica; no other service can reach it.
 
 ```mermaid
 sequenceDiagram

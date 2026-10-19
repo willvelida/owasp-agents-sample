@@ -1,0 +1,17 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environmentName": { "value": "${AZURE_ENV_NAME}" },
+    "location": { "value": "${AZURE_LOCATION=australiaeast}" },
+    "principalId": { "value": "${AZURE_PRINCIPAL_ID}" },
+    "principalType": { "value": "${AZURE_PRINCIPAL_TYPE=User}" },
+    "tenantId": { "value": "${TENANT_ID=}" },
+    "blueprintAppId": { "value": "${BLUEPRINT_APP_ID=}" },
+    "chatAgentAppId": { "value": "${CHAT_AGENT_APP_ID=}" },
+    "healthMcpAppId": { "value": "${HEALTH_MCP_APP_ID=}" },
+    "cliAppId": { "value": "${CLI_APP_ID=}" },
+    "chatApiExists": { "value": "${SERVICE_CHAT_API_RESOURCE_EXISTS=false}" },
+    "healthMcpExists": { "value": "${SERVICE_HEALTH_MCP_RESOURCE_EXISTS=false}" }
+  }
+}

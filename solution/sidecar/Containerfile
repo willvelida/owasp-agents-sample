@@ -1,0 +1,25 @@
+# Local-only build of the Microsoft Entra SDK for AgentID (sidecar) for hosts whose Podman machine is
+# arm64: the published MCR image (mcr.microsoft.com/entra-sdk/auth-sidecar) ships amd64 only. Azure keeps
+# using the MCR image.
+#
+# ASI04: pinned to an upstream commit and verified after clone. The sidecar-1.0.0 tag no longer restores
+# with NuGet audit on (transitive advisories, one critical), so this tracks a reviewed master commit
+# that restores cleanly, with audit left on.
+ARG DOTNET_VERSION=10.0
+FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION} AS build
+ARG SIDECAR_REF=master
+ARG SIDECAR_COMMIT=742106f406456bb42808fa5fff96e1b2dd39a62e
+ARG TARGET_FRAMEWORK=net10.0
+RUN git init -q /src \
+    && git -C /src remote add origin https://github.com/AzureAD/microsoft-identity-web.git \
+    && git -C /src fetch -q --depth 1 origin "${SIDECAR_COMMIT}" \
+    && git -C /src checkout -q FETCH_HEAD \
+    && test "$(git -C /src rev-parse HEAD)" = "${SIDECAR_COMMIT}"
+WORKDIR /src/src/Microsoft.Identity.Web.Sidecar
+RUN dotnet publish -c Release -f "${TARGET_FRAMEWORK}" -o /out /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION}-azurelinux3.0-distroless
+WORKDIR /app
+COPY --from=build /out .
+USER app
+ENTRYPOINT ["dotnet", "Microsoft.Identity.Web.Sidecar.dll"]
