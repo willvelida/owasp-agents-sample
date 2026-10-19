@@ -19,7 +19,11 @@ RUN uv sync --frozen --no-dev --no-install-project
 COPY src ./src
 RUN uv sync --frozen --no-dev
 
-ENV PATH="/app/.venv/bin:${PATH}"
+# ASI01, ASI02, ASI04: pinned prompt, governance policy, injection patterns, and MCP descriptor lock.
+COPY policies ./policies
+
+ENV PATH="/app/.venv/bin:${PATH}" \
+    POLICY_DIR=/app/policies
 
 # Local Compose only (ADR-0022): Azure CLI so DefaultAzureCredential can use the developer's az login,
 # cached in the azcli-cache volume at /home/app/.azure (owned by UID 10001). Never built for Azure.

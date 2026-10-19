@@ -1,0 +1,22 @@
+# ASI01: prompt-injection screening with AGT PromptInjectionDetector. These patterns extend AGT's
+# built-in rule set (direct override, delimiters, encodings, role play, context manipulation) and apply
+# to user input and to every tool result. Kept in versioned YAML, not inline code, because hardcoded
+# deny lists are discoverable and drift.
+sensitivity: strict
+
+custom_patterns:
+  # Instructions addressed to the assistant from inside data ("care team instruction for the assistant").
+  - '\b(system|care[- ]?team|clinic|admin(istrator)?|important)\s+(note|instruction|message|directive)s?\s+(for|to)\s+the\s+(\w+\s+)?(assistant|ai|model|agent)'
+  - '\bdo\s+not\s+(mention|reveal|disclose)\s+(this|these)\s+(note|instruction|message)'
+  # Markdown or HTML images pointing at a remote host: zero-click exfiltration.
+  - '!\[[^\]]*\]\(\s*https?://'
+  - '<img\s[^>]*src\s*=\s*["'']?https?://'
+  # System prompt extraction.
+  - '\b(repeat|print|reveal|show|output|dump|recite|display|list)\b.{0,40}\b(system\s+prompt|hidden\s+(prompt|instructions)|instructions\s+above|everything\s+above|(your|the\s+system)\s+(\w+\s+){0,3}(instructions|prompt|configuration))'
+  - '\b(what|tell\s+me)\b.{0,20}\b(your|the)\s+system\s+prompt'
+  - '\bstarting\s+with\s+.?you\s+are\b'
+
+# Exact strings that always trigger (case-insensitive).
+blocklist:
+  - "maintenance mode"
+  - "developer mode"

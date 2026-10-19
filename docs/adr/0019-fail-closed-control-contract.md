@@ -1,7 +1,7 @@
 ---
 title: "ADR-0019: Enforce a fail-closed contract for every solution control"
 description: Define the required failure behaviour and test for each control type so that no control fails open
-ms.date: 2026-10-18
+ms.date: 2026-10-19
 ms.topic: reference
 ---
 
@@ -30,6 +30,19 @@ Every solution control follows this contract and has a test for it.
 | Kill switch on                           | Refuse every run before the model call            |
 
 The Phase 0 spikes confirm which MAF mechanism aborts a parallel tool batch. Session budgets are keyed by user and session and incremented atomically.
+
+### Amendment (2026-10-19, slice S2): verified batch-abort mechanism
+
+The S2 spike (OQ-12) against MAF 1.22.0 settled the mechanism with a scripted model that returns a two-call parallel batch:
+
+| Mechanism                                          | Sibling call runs | Run outcome                   |
+|----------------------------------------------------|-------------------|-------------------------------|
+| Function middleware raises `MiddlewareTermination` | Yes               | Completes gracefully          |
+| Function middleware raises `MiddlewareFailure`     | No (cancelled)    | Fails                         |
+| Function middleware raises an ordinary exception   | Yes               | Fails open; the model runs again |
+| Chat middleware result gate raises `MiddlewareFailure` | No (no call starts) | Fails                    |
+
+Solution controls therefore raise `MiddlewareFailure`. Tool policy runs as a chat middleware that checks the whole batch before any call starts, with per-call function middleware as a second layer. Cancellation is cooperative, so the batch-level check is the guarantee. The AGT 5.0 MAF adapter denies with `MiddlewareTermination`, so its function middleware is wrapped to raise `MiddlewareFailure` instead.
 
 ## Consequences
 

@@ -1,0 +1,17 @@
+{
+  "server": "biotrackr-health",
+  "tools": {
+    "get_activity_by_date": "sha256:3d0a7e85ab81db2d2f364ae62d94e95521861bfb48ef99782aa75eb61cdaa80e",
+    "get_activity_by_date_range": "sha256:de14680a9d630af9c52573af87e943f6a0c8088dec5d1c305692bff485c1e430",
+    "get_activity_records": "sha256:95f51bd6a8f3361c8855661bf49bd3672074abc418b62d3a1673771012db596f",
+    "get_food_by_date": "sha256:db4c7795830cd0e4bccf5ba87913320136c6950c30526ab90e47bb44db2651e3",
+    "get_food_by_date_range": "sha256:c47a4968ed2e741b8999d98bfa742f5b7a6e65529b307778429524bfe1dab95d",
+    "get_food_records": "sha256:7ac8d8c64c9960a40d1839054937b7df9ab6a49e642ed5fc469ae222a73e2d22",
+    "get_sleep_by_date": "sha256:d1e38df6aa49dae9c9335f301e8757ec852e304a22ed79fbcf5ad27e570b9e04",
+    "get_sleep_by_date_range": "sha256:d0f41fdd3baeb158e5b9f8ad7f68552720b99a4d166995546401d26053d0641e",
+    "get_sleep_records": "sha256:729113cf5e4893b3c78913ba8289ef44091cda652c5e51b61bdc746c2a024e63",
+    "get_vitals_by_date": "sha256:b4e601f3b50add5d1f21031a74db0e16f843436be2c9892bd1dee8a594bc95fe",
+    "get_vitals_by_date_range": "sha256:ff205649ec0a15d6bfe522c3ff10bad70fa9ef9084f5ad65db1e3f56b48383b0",
+    "get_vitals_records": "sha256:0f63d07b2b71799eb42b2a9fe4ba460ec4c1e18dde5ebc785bcc742acf587da5"
+  }
+}

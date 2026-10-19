@@ -40,7 +40,10 @@ class Renderer:
         elif kind == "TOOL_CALL_RESULT":
             self.console.print(f"[dim]< {escape(_preview(event.get('content', '')))}[/]")
         elif kind == "RUN_ERROR":
-            self.error = event.get("message", "unknown error")
+            # The solution never sends exception text; `code` names the control's exception (MiddlewareFailure).
+            code = event.get("code")
+            self.error = f"{code}: " if code else ""
+            self.error += event.get("message", "unknown error")
             self.console.print(f"[bold red]run error:[/] {escape(self.error)}")
 
 

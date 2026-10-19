@@ -54,6 +54,12 @@ services:
   health-mcp:
     <<: *app
     command: ["python", "-m", "health_mcp"]
+    # ASI04: the same optional rugpull.env as the starter has no effect here. Descriptions are static
+    # and checked against policies/mcp_tools.lock.json at startup (exit non-zero on mismatch).
+    env_file:
+      - .env
+      - path: rugpull.env
+        required: false
     environment:
       <<: *app-env
       MCP_ALLOWED_HOSTS: health-mcp:8001,health-mcp

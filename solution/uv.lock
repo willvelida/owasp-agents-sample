@@ -352,6 +352,7 @@ dependencies = [
     { name = "httpx" },
     { name = "mcp" },
     { name = "pyjwt", extra = ["crypto"] },
+    { name = "pyyaml" },
     { name = "uvicorn" },
 ]
 
@@ -377,6 +378,7 @@ requires-dist = [
     { name = "httpx", specifier = "==0.28.1" },
     { name = "mcp", specifier = "==1.30.0" },
     { name = "pyjwt", extras = ["crypto"], specifier = "==2.15.1" },
+    { name = "pyyaml", specifier = "==6.0.3" },
     { name = "uvicorn", specifier = "==0.54.0" },
 ]
 

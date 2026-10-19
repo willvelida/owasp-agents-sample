@@ -29,10 +29,6 @@ class SpyRepository:
         self.queries.append((user_id, document_type))
         return [{"userId": user_id, "documentType": document_type}]
 
-    async def delete(self, user_id, document_type):
-        self.queries.append((user_id, f"delete:{document_type}"))
-        return 0
-
 
 @pytest.fixture
 def mcp(mcp_validator, sim):
@@ -76,7 +72,6 @@ async def test_alice_token_never_reads_bob(mcp, sim):
         ("get_sleep_records", {"user_id": "bob"}),
         ("get_sleep_by_date", {"date": "2026-10-14", "user_id": ENV["BOB_OID"]}),
         ("get_food_by_date_range", {"start_date": "2026-10-01", "end_date": "2026-10-14", "userId": "bob"}),
-        ("delete_records", {"document_type": "sleep", "user_id": ENV["BOB_OID"]}),
     ]:
         response = call(client, tool, args, token)
         assert response.status_code == 200, response.text
@@ -91,6 +86,6 @@ async def test_tools_do_not_expose_user_id(mcp, sim):
     body = {"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}
     response = client.post("/mcp", json=body, headers={**MCP_HEADERS, "Authorization": f"Bearer {token}"})
     tools = result_of(response)["tools"]
-    assert len(tools) == 13
+    assert len(tools) == 12
     for tool in tools:
         assert "user_id" not in tool["inputSchema"].get("properties", {})
