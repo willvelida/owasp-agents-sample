@@ -38,6 +38,11 @@ services:
   health-mcp:
     <<: *app
     command: ["python", "-m", "health_mcp"]
+    # ASI04 (starter): optional rugpull.env rewrites tool descriptions at deploy time; nothing pins them.
+    env_file:
+      - .env
+      - path: rugpull.env
+        required: false
     # ASI03 (starter): the MCP server is published to the host with no auth at all.
     ports:
       - "127.0.0.1:8001:8001"

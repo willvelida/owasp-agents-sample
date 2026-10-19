@@ -1,5 +1,6 @@
 """PyRIT target for the Biotrackr AG-UI endpoint (starter or solution)."""
 
+import asyncio
 import json
 import uuid
 from typing import Any
@@ -37,6 +38,14 @@ class BiotrackrTarget(PromptTarget):
         return [construct_response_from_request(request=request, response_text_pieces=[text])]
 
     async def run_async(self, thread_id: str, prompt: str) -> str:
+        # The whole run has one deadline: a stalled stream (the starter has no timeouts) cannot block the scorecard.
+        try:
+            text = await asyncio.wait_for(self._run_stream(thread_id, prompt), timeout=self._timeout)
+        except TimeoutError:
+            return f"[timeout] no complete response within {self._timeout:.0f} s"
+        return text
+
+    async def _run_stream(self, thread_id: str, prompt: str) -> str:
         body = {
             "threadId": thread_id,
             "runId": str(uuid.uuid4()),
@@ -89,7 +98,8 @@ class Transcript:
         elif kind == "TOOL_CALL_RESULT":
             self.tools.append(f"[result] {event.get('content', '')}")
         elif kind == "RUN_ERROR":
-            self.error = event.get("message", "unknown error")
+            code = event.get("code")
+            self.error = (f"{code}: " if code else "") + event.get("message", "unknown error")
 
     def render(self) -> str:
         parts = ["".join(self.text), *self.tools]

@@ -61,12 +61,6 @@ class HealthRepository:
             user_id,
         )
 
-    async def delete(self, user_id: str, document_type: str) -> int:
-        docs = await self.records(user_id, document_type, 1, 10_000)
-        for doc in docs:
-            await self._container.delete_item(doc["id"], partition_key=user_id)
-        return len(docs)
-
     async def close(self) -> None:
         await self._client.close()
 

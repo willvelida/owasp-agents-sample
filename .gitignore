@@ -225,6 +225,7 @@ __marimo__/
 # OWASP agents sample
 .secrets/
 .azure/
+rugpull.env
 *.duckdb
 *.sqlite
 pyrit_results/

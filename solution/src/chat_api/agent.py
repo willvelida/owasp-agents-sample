@@ -5,14 +5,17 @@ from collections.abc import Awaitable, Callable
 from datetime import date
 from typing import Any
 
-from agent_framework import Agent, AgentSession, ContextProvider, MCPStreamableHTTPTool, SessionContext
+from agent_framework import Agent, AgentSession, ContextProvider, SessionContext
 from agent_framework.foundry import FoundryChatClient
 
 from auth_common.azure_credential import azure_credential
 from chat_api.auth import Principal, current_principal
 from chat_api.history import CosmosHistoryProvider
 from chat_api.identity import DownstreamTokenProvider, mcp_authorization, mcp_headers
-from chat_api.prompts import SYSTEM_PROMPT
+from chat_api.mcp_pinning import PinnedMCPStreamableHTTPTool
+from chat_api.middleware import build_middleware, load_governance
+from chat_api.prompts import load_system_prompt
+from governance import PolicyError, descriptors
 
 PrincipalFallback = Callable[[], Awaitable[Principal]]
 
@@ -51,6 +54,14 @@ def build_agent(
     tokens: DownstreamTokenProvider | None = None,
     principal_fallback: PrincipalFallback | None = None,
 ) -> Agent:
+    # ASI01: hash-pinned prompt; ASI02: versioned governance policy. Either failing stops startup.
+    instructions = load_system_prompt()
+    try:
+        governance = load_governance()
+        pinned = descriptors.load_lock()
+        middleware = build_middleware(governance)
+    except PolicyError as exc:
+        raise SystemExit(f"governance policy unavailable: {exc}") from exc
     # ASI03: Entra only (managed identity on Azure, az login locally); the Foundry resource has key auth disabled.
     client = FoundryChatClient(
         project_endpoint=os.environ["FOUNDRY_PROJECT_ENDPOINT"],
@@ -58,17 +69,22 @@ def build_agent(
         credential=azure_credential(),
     )
     # ASI03: the MCP tool sends the per-run OBO token from IdentityProvider.
-    # ASI02 (starter): no allowed_tools, so every tool on the server (including delete_records) is exposed.
+    # ASI02: only the allowlisted read tools are exposed to the model.
+    # ASI04: descriptors are checked against policies/mcp_tools.lock.json on every tools/list.
     # ASI08 (starter): no request timeout.
-    health = MCPStreamableHTTPTool(
+    health = PinnedMCPStreamableHTTPTool(
         name="health",
         url=os.environ.get("MCP_URL", "http://localhost:8001/mcp"),
         header_provider=mcp_headers,
+        allowed_tools=governance.allowed_tools,
+        pinned=pinned,
     )
+    # ASI01, ASI02: governance middleware lives on the Agent, so DevUI runs are governed as well.
     return Agent(
         client=client,
         name="BiotrackrChatAgent",
-        instructions=SYSTEM_PROMPT,
+        instructions=instructions,
         tools=[health],
+        middleware=middleware,
         context_providers=[IdentityProvider(tokens or DownstreamTokenProvider(), principal_fallback), history],
     )

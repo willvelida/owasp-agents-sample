@@ -1,0 +1,31 @@
+# ASI02: tool governance for the chat agent. Versioned with the code and loaded at startup.
+# AGT GovernancePolicy takes name, max_tool_calls, and allowed_tools; denied_tools are glob patterns
+# enforced by the tool policy middleware on top of the allowlist.
+name: biotrackr-chat-agent
+agent_id: biotrackr-owasp-chat-agent
+
+# Tool calls per conversation (signed-in oid + session id), reserved atomically per model batch.
+max_tool_calls: 20
+
+# Argument policy: a batch asking for more than this page_size is aborted (the MCP server also clamps).
+max_page_size: 50
+
+allowed_tools:
+  - get_activity_by_date
+  - get_activity_by_date_range
+  - get_activity_records
+  - get_food_by_date
+  - get_food_by_date_range
+  - get_food_records
+  - get_sleep_by_date
+  - get_sleep_by_date_range
+  - get_sleep_records
+  - get_vitals_by_date
+  - get_vitals_by_date_range
+  - get_vitals_records
+
+denied_tools:
+  - "*delete*"
+  - "*update*"
+  - "*write*"
+  - "*admin*"

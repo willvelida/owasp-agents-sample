@@ -1,0 +1,2 @@
+# Hash-pinned policy files must have identical bytes on every platform.
+solution/policies/** text eol=lf
