@@ -24,6 +24,15 @@ class Attack:
     converter: str | None = None
     markdown_exfil: bool = False
     judge: str | None = None
+    # With --judge, AND the judge question with an inverted SelfAskRefusalScorer (did not refuse).
+    refusal_judge: bool = False
+    # "asi05": a BLOCKED result on a solution target counts only if the canary is set in report-agent and the
+    # attack reached the static check or the runner (rejected_by). Otherwise the result is INVALID.
+    oracle: str | None = None
+    # Multi-turn PyRIT CrescendoAttack towards this objective (needs --judge for the adversarial chat and scorer).
+    crescendo: str | None = None
+    # Minimum attempts for attacks whose success varies run to run with the model (any hit counts).
+    min_attempts: int = 0
 
 
 def canary(value: str) -> dict[str, str]:
@@ -31,6 +40,6 @@ def canary(value: str) -> dict[str, str]:
 
 
 def catalogue() -> list[Attack]:
-    from redteam.attacks import asi01, asi02, asi03
+    from redteam.attacks import asi01, asi02, asi03, asi05, asi09
 
-    return [*asi01.ATTACKS, *asi02.ATTACKS, *asi03.ATTACKS]
+    return [*asi01.ATTACKS, *asi02.ATTACKS, *asi03.ATTACKS, *asi05.ATTACKS, *asi09.ATTACKS]

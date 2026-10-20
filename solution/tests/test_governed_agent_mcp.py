@@ -9,20 +9,37 @@ from conftest import ENV
 from test_mcp_tools import SpyRepository
 from test_tool_governance import ScriptedClient, call
 
+from chat_api.agent import BiotrackrAgent
 from chat_api.auth import current_principal, principal_from_claims
 from chat_api.mcp_pinning import DescriptorPinError, PinnedMCPStreamableHTTPTool
 from chat_api.middleware import build_middleware, load_governance
+from chat_api.tools_report import build_report_tools
 from governance import descriptors
 from health_mcp.auth import HealthTokenVerifier
 from health_mcp.server import build_server
 
 
 @asynccontextmanager
-async def governed(mcp_validator, sim, turns, pinned):
-    """Serves the MCP app in process and yields (repo, agent, model client); closes the MCP client first."""
+async def governed(mcp_validator, sim, turns, pinned, *, agent_cls=Agent, extra_tools=(), fresh_tokens=False):
+    """Serves the MCP app in process and yields (repo, agent, model client); closes the MCP client first.
+
+    fresh_tokens mints a new OBO token for every request, like the offline simulator (the sidecar caches).
+    """
     repo = SpyRepository()
     server = build_server(repo, HealthTokenVerifier(mcp_validator), issuer_url=sim.issuer)
     bearer = "Bearer " + await sim.obo(sim.user_token("alice"), ENV["CHAT_AGENT_APP_ID"])
+    obo_claims = {
+        "aud": ENV["HEALTH_MCP_APP_ID"],
+        "azp": ENV["CHAT_AGENT_APP_ID"],
+        "scp": "Health.Read",
+        "oid": ENV["ALICE_OID"],
+        "sub": ENV["ALICE_OID"],
+        "idtyp": "user",
+    }
+
+    def headers(_):
+        return {"Authorization": "Bearer " + sim._sign(obo_claims) if fresh_tokens else bearer}
+
     current_principal.set(principal_from_claims({"oid": ENV["ALICE_OID"]}, "token"))
     governance = load_governance()
     app = server.streamable_http_app()
@@ -34,12 +51,12 @@ async def governed(mcp_validator, sim, turns, pinned):
             name="health",
             url="http://testserver/mcp",
             http_client=http,
-            header_provider=lambda _: {"Authorization": bearer},
+            header_provider=headers,
             allowed_tools=governance.allowed_tools,
             pinned=pinned,
         )
         client = ScriptedClient(turns)
-        agent = Agent(client=client, tools=[health], middleware=build_middleware(governance))
+        agent = agent_cls(client=client, tools=[health, *extra_tools], middleware=build_middleware(governance))
         try:
             yield repo, agent, client
         finally:
@@ -67,3 +84,29 @@ async def test_descriptor_mismatch_fails_the_run_before_the_model(mcp_validator,
     assert not isinstance(caught.value, MiddlewareFailure)
     assert client.calls == 0
     assert repo.queries == []
+
+
+@pytest.mark.parametrize("agent_cls", [Agent, BiotrackrAgent], ids=["maf-agent", "biotrackr-agent"])
+async def test_agui_server_tools_with_connected_mcp(mcp_validator, sim, agent_cls):
+    """ag-ui passes connected MCP functions back as run tools when an approval tool exists (S3 regression)."""
+    from agent_framework_ag_ui._tooling import collect_server_tools
+
+    reports = build_report_tools(object(), approval_required=("generate_report",))
+    turns = [
+        [call("get_food_by_date", arguments='{"date": "2026-10-14"}')],
+        [Content.from_text("one")],
+        [Content.from_text("two")],
+    ]
+    pinned = descriptors.load_lock()
+    async with governed(
+        mcp_validator, sim, turns, pinned, agent_cls=agent_cls, extra_tools=reports, fresh_tokens=True
+    ) as (_, agent, _c):
+        session = agent.create_session()
+        await agent.run("What did I eat on 2026-10-14?", session=session)  # connects the MCP tool
+        server_tools = collect_server_tools(agent)
+        assert any(t.name == "get_food_by_date" for t in server_tools)
+        if agent_cls is Agent:
+            with pytest.raises(ValueError, match="Duplicate tool name"):
+                await agent.run("and again?", session=session, tools=server_tools)
+        else:
+            assert (await agent.run("and again?", session=session, tools=server_tools)).text == "two"

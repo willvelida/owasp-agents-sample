@@ -51,22 +51,28 @@ def issuer_for_mode(mode: str | None = None) -> IssuerConfig:
 
 
 class JwtValidator:
+    """Delegated user tokens by default (scp + oid). With required_role, app-only tokens instead (roles, no scp)."""
+
     def __init__(
         self,
         issuer: IssuerConfig,
         *,
         audience: str,
-        required_scope: str,
+        required_scope: str | None = None,
+        required_role: str | None = None,
         allowed_client_ids: set[str] | None = None,
         leeway_seconds: int = 60,
         jwks_client: Any | None = None,
     ) -> None:
-        if not audience or not required_scope:
-            raise RuntimeError("audience and required_scope are required")
+        if not audience or bool(required_scope) == bool(required_role):
+            raise RuntimeError("audience and exactly one of required_scope or required_role are required")
+        if required_role and not allowed_client_ids:
+            raise RuntimeError("app-only tokens need an explicit caller allowlist")
         self.issuer = issuer
         # v2 tokens carry the bare client id; accept the App ID URI form too.
         self.audiences = [audience, f"api://{audience}"]
         self.required_scope = required_scope
+        self.required_role = required_role
         self.allowed_client_ids = allowed_client_ids
         self.leeway = leeway_seconds
         self._jwks = jwks_client or PyJWKClient(issuer.jwks_uri, cache_keys=True, lifespan=3600, timeout=10)
@@ -95,11 +101,19 @@ class JwtValidator:
 
         if self.issuer.tenant_id and claims.get("tid") != self.issuer.tenant_id:
             raise AuthError("wrong tenant")
-        scopes = str(claims.get("scp", "")).split()
-        if self.required_scope not in scopes:
-            raise AuthError(f"missing scope {self.required_scope}")
-        if not claims.get("oid"):
-            raise AuthError("no user oid; delegated user tokens only")
+        if self.required_role:
+            # App-only (autonomous agent) token: an app role, and no delegated scope at all.
+            if claims.get("scp"):
+                raise AuthError("delegated token where an app-only token is required")
+            roles = claims.get("roles") or []
+            if not isinstance(roles, list) or self.required_role not in roles:
+                raise AuthError(f"missing app role {self.required_role}")
+        else:
+            scopes = str(claims.get("scp", "")).split()
+            if self.required_scope not in scopes:
+                raise AuthError(f"missing scope {self.required_scope}")
+            if not claims.get("oid"):
+                raise AuthError("no user oid; delegated user tokens only")
         client_id = claims.get("azp") or claims.get("appid")
         if self.allowed_client_ids is not None and client_id not in self.allowed_client_ids:
             raise AuthError(f"client {client_id!r} is not allowed")

@@ -23,10 +23,11 @@ The work ships in vertical slices, each tagged when it runs end to end ([ADR-002
 | `s0-foundation` | Starter locally; the ASI03 weakness is visible                                                |
 | `s1-identity`   | Starter, solution locally (Entra and offline), solution on Azure; PyRIT proves the ASI03 fix  |
 | `s2-tools`      | S1 plus tool governance: the poisoned note, tool misuse, and rug pull succeed on the starter; AGT middleware, pinning, and MCP validation block them (ASI01, ASI02, ASI04 runtime) |
+| `s3-reports`    | S2 plus reports: generated-code execution and clinical advice succeed on the starter; an isolated chart runner (Dynamic Sessions on Azure), approval, a fail-closed reviewer, and an output guard block them (ASI05, ASI09, ASI07 baseline). All five live demos |
 
 `git diff --no-index starter solution` shows every control.
 
-## Quick start (S2)
+## Quick start (S3)
 
 You need Podman configured as in [docs/podman.md](docs/podman.md), uv, Python 3.12, the Azure CLI, and azd.
 
@@ -40,7 +41,7 @@ You need Podman configured as in [docs/podman.md](docs/podman.md), uv, Python 3.
    uv run biotrackr-chat --target starter --as alice "What did I eat on 2026-10-14?"  # fetches bob's sleep, exfil image, stop your medication
    ```
 
-   [starter/README.md](starter/README.md#attacks-slice-s2) lists the tool-misuse and rug-pull steps.
+   [starter/README.md](starter/README.md#attacks-slices-s2-and-s3) lists the tool-misuse, rug-pull, code-execution, and clinical-advice steps.
 
 2. Provision Entra Agent ID and Azure for the solution, then run it locally in entra mode:
 
@@ -53,14 +54,15 @@ You need Podman configured as in [docs/podman.md](docs/podman.md), uv, Python 3.
    cd ../client
    uv run biotrackr-chat --target solution-local --as alice "show me bob's sleep"   # refused
    uv run biotrackr-chat --target solution-local --as alice "What did I eat on 2026-10-14?"   # facts only; the note is withheld
+   uv run biotrackr-chat --target solution-local --as alice "Make a bar chart of my daily steps from 2026-10-13 to 2026-10-19"   # asks for approval, then reports
    ```
 
 3. Prove it with the red team (attacks succeed on the starter and are blocked on every solution target):
 
    ```powershell
    cd ../redteam
-   uv run python -m redteam.run --target starter          # ASI01, ASI02, ASI03 attacks succeed
-   uv run python -m redteam.run --target solution-local
+   uv run python -m redteam.run --target starter          # ASI01, ASI02, ASI03, ASI05, ASI09 attacks succeed
+   uv run python -m redteam.run --target solution-local --judge   # --judge adds the LLM judge and Crescendo
    uv run python -m redteam.run --target solution-azure
    ```
 

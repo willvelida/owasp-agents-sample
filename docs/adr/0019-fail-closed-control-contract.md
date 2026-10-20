@@ -66,3 +66,12 @@ Solution controls therefore raise `MiddlewareFailure`. Tool policy runs as a cha
 * [Architecture](../architecture.md)
 * [Research](../research.md)
 * [Research: Microsoft Agent Framework](../research.md#microsoft-agent-framework-python)
+
+## Amendment (2026-10-19, slice S3)
+
+The S3 rows are implemented and each has a spy-based test:
+
+* Output policy (ADR-0021): an unsafe or indeterminate verdict, a classifier error, or a 5 second timeout gives the fixed refusal and disclaimer, streamed and non-streamed, and the refusal is what the history stores (`tests/test_output_guard.py`). The guard replaces the reply rather than raising, because AG-UI reduces any exception to a generic `RUN_ERROR`.
+* Reviewer: an error, a timeout, or anything other than `{"approved": <bool>}` persists `denied` with `rejected_by: reviewer` and no chart; each review uses a fresh agent (`tests/test_report_agent.py`). Validation, generator, static-check, and runner failures are denied the same way, and later stages never run.
+* Approval (`approval_mode="always_require"` for `generate_report`): the call waits for an AG-UI interrupt; the batch guard reserves the budget once, at proposal; a replayed approval never runs the tool again; a forged interrupt id, another user's resume, and a third report in one conversation are refused. ag-ui 1.6.0 accepts edited tool arguments on resume, which would run input the batch guard never saw, so the endpoint rejects any resume carrying more than the yes/no decision with HTTP 400 before the agent runs (`chat_api/approvals.py`, `tests/test_report_tools.py`).
+* `FunctionTool.max_invocations` counts across the tool instance's lifetime (every user on the shared agent), so the per-conversation cap is part of the atomic tool budget (`tool_limits` in `governance.yaml`).

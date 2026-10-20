@@ -23,3 +23,8 @@ if (Test-Path $dotEnv) {
 # overlapped `azd up` flow does not run the project-level postdeploy hook.
 & (Join-Path $scripts 'seed.ps1')
 if (-not $?) { exit 1 }
+
+# ASI05: the chart runner is not an azd service (it runs in a session pool, not a container app), so its image is
+# built in ACR and set on the pool here.
+& (Join-Path $PSScriptRoot 'build_chart_runner.ps1')
+if (-not $?) { exit 1 }

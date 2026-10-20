@@ -40,3 +40,7 @@ A tiered system prompt alone is unlikely to withstand multi-turn Crescendo attac
 
 * [Architecture](../architecture.md)
 * [Research](../research.md)
+
+## Amendment (2026-10-19, slice S3)
+
+Implemented as a MAF chat middleware (`middleware/output_guard.py`), the outermost chat middleware after the input guard. For streams it sets `stream_buffer_updates = True`, appends an async result transform, and sets `stream_result_to_updates`, so neither the client nor the history sees any text before the verdict. The classifier is a fresh, tool-less `Agent` on a separate Foundry client per check, sees only the last user message and the reply (both as untrusted data), and must answer `{"verdict": "safe"}` exactly; anything else is treated as indeterminate. Turns that carry only tool calls are not classified. Azure AI Content Safety custom categories were not used.

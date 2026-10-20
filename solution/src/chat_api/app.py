@@ -6,10 +6,12 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Annotated, Any
 
+import httpx
 import uvicorn
 from agent_framework.ag_ui import add_agent_framework_fastapi_endpoint
 from fastapi import Depends, FastAPI, HTTPException
 
+from chat_api.approvals import reject_edited_approvals
 from chat_api.auth import Principal, RequireUser, build_validator, snapshot_scope
 
 
@@ -23,17 +25,30 @@ def create_app(agent: Any, store: Any, require_user: RequireUser) -> FastAPI:
 
     # ASI03: bearer validation runs before the handler, and the snapshot scope binds threads to the oid,
     # so one user's thread id resolves to a different session for anyone else.
+    # ASI09: approval resumes carry a yes/no decision only, never edited tool arguments.
     add_agent_framework_fastapi_endpoint(
         app,
         agent,
         "/",
-        dependencies=[Depends(require_user)],
+        dependencies=[Depends(require_user), Depends(reject_edited_approvals)],
         snapshot_scope_resolver=snapshot_scope,
     )
 
     @app.get("/healthz/liveness")
     async def liveness() -> dict[str, str]:
         return {"status": "ok"}
+
+    # Red-team oracle for ASI05 (signed-in users only): is the report agent up, and is its canary set?
+    # Booleans only; the report agent never returns the value.
+    @app.get("/diagnostics/report-agent")
+    async def report_agent_health(_: Annotated[Principal, Depends(require_user)]) -> dict[str, bool]:
+        url = os.environ.get("REPORT_AGENT_URL", "http://report-agent:8002/").rstrip("/") + "/healthz"
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                body = (await client.get(url)).json()
+        except (httpx.HTTPError, ValueError):
+            return {"reachable": False, "canary_present": False}
+        return {"reachable": body.get("status") == "ok", "canary_present": body.get("canary_present") is True}
 
     # ASI03: conversation endpoints only ever see the caller's own sessions.
     @app.get("/conversations")

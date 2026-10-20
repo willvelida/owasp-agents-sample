@@ -9,6 +9,7 @@ from agent_framework.openai import OpenAIChatClient
 
 from chat_api.history import CosmosHistoryProvider, current_user
 from chat_api.prompts import SYSTEM_PROMPT
+from chat_api.tools_report import REPORT_TOOLS
 
 
 class CurrentUserProvider(ContextProvider):
@@ -41,6 +42,6 @@ def build_agent(history: CosmosHistoryProvider) -> Agent:
         client=client,
         name="BiotrackrChatAgent",
         instructions=SYSTEM_PROMPT,
-        tools=[health],
+        tools=[health, *REPORT_TOOLS],
         context_providers=[CurrentUserProvider(), history],
     )

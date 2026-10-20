@@ -44,3 +44,12 @@ The report agent generates matplotlib code from model output. Static checks on g
 
 * [Architecture](../architecture.md)
 * [Research](../research.md)
+
+## Amendment (2026-10-19, slice S3)
+
+The S3 spike (OQ-05) did not adopt the AGT sandbox. AGT 5.0's `agent_sandbox` is a provider abstraction: its Docker provider needs the container engine socket (ruled out above), Hyperlight needs a hypervisor the arm64 Podman machine lacks, nono is Landlock-only and unproven here, and its ACA provider targets the early-access "sandbox groups" SDK rather than Dynamic Sessions. The isolated runner is therefore:
+
+* Locally, `chart-runner` built from its own `chart_runner.Containerfile` (only matplotlib, numpy, Starlette, and uvicorn, hash-locked), with `network_mode: none`, read-only root, UID 10001, `cap_drop: [ALL]`, `no-new-privileges`, `pids_limit: 64`, one CPU, 768 MB, and no `.env`. It is reached over a Unix socket on the `chart-socket` volume. Each job runs in a fresh worker process with an empty environment, CPU, address-space, file-size, and open-file rlimits, and a 10 second wall clock, and returns only a PNG under 1 MB.
+* On Azure (OQ-10), a `Microsoft.App/sessionPools` custom-container pool (`chartrunner`) with `EgressDisabled`, a fresh session per job that is stopped afterwards, and the image pulled with the report agent's own managed identity (`lifecycle: None`, so no token inside a session). Only that identity holds Session Executor on the pool. The postprovision hook builds the linux/amd64 image in ACR, tagged by a content hash.
+
+The generator prompt is deliberately the same as the starter's, so red-team results show the check and the runner doing the work. A blocked ASI05 attack only counts when the report says `rejected_by: static_check` or `runner` and the canary is confirmed present in the report agent. The chart-spec DSL fallback was not needed.

@@ -11,9 +11,10 @@ from typing import Any
 
 import httpx
 from rich.console import Console
+from rich.markup import escape
 
 from biotrackr_client.auth import AuthError, headers_for, resolve_url
-from biotrackr_client.render import Renderer
+from biotrackr_client.render import SLOW_TOOLS, Renderer, interrupt_call
 
 console = Console()
 
@@ -34,33 +35,71 @@ def load_targets(path: Path | None) -> dict[str, Any]:
     return tomllib.loads(resources.files("biotrackr_client").joinpath("targets.toml").read_text(encoding="utf-8"))
 
 
-def send(client: httpx.Client, url: str, thread_id: str, message: str) -> Renderer:
-    body = {
+def _body(thread_id: str, *, message: str | None = None, resume: dict[str, Any] | None = None) -> dict[str, Any]:
+    body: dict[str, Any] = {
         "threadId": thread_id,
         "runId": str(uuid.uuid4()),
         # The server keeps history per thread, so only the new user message is sent.
-        "messages": [{"id": str(uuid.uuid4()), "role": "user", "content": message}],
+        "messages": [{"id": str(uuid.uuid4()), "role": "user", "content": message}] if message else [],
         "state": {},
         "tools": [],
         "context": [],
         "forwardedProps": {},
     }
-    renderer = Renderer(console)
-    with client.stream("POST", url, json=body, headers={"Accept": "text/event-stream"}) as response:
-        if response.status_code >= 400:
-            response.read()
-            renderer.error = f"HTTP {response.status_code}: {response.text[:300]}"
-            console.print(f"[bold red]{renderer.error}[/]")
-            return renderer
-        data: list[str] = []
-        for line in response.iter_lines():
-            if line.startswith("data:"):
-                data.append(line[5:].lstrip())
-            elif line == "" and data:
+    if resume is not None:
+        body["resume"] = resume
+    return body
+
+
+def _stream(client: httpx.Client, url: str, body: dict[str, Any], renderer: Renderer) -> None:
+    try:
+        with client.stream("POST", url, json=body, headers={"Accept": "text/event-stream"}) as response:
+            if response.status_code >= 400:
+                response.read()
+                renderer.close()
+                renderer.error = f"HTTP {response.status_code}: {response.text[:300]}"
+                console.print(f"[bold red]{renderer.error}[/]")
+                return
+            data: list[str] = []
+            for line in response.iter_lines():
+                if line.startswith("data:"):
+                    data.append(line[5:].lstrip())
+                elif line == "" and data:
+                    renderer.handle(json.loads("\n".join(data)))
+                    data = []
+            if data:
                 renderer.handle(json.loads("\n".join(data)))
-                data = []
-        if data:
-            renderer.handle(json.loads("\n".join(data)))
+    finally:
+        renderer.close()
+
+
+def _decide(interrupt: dict[str, Any], approve: str) -> bool:
+    name, arguments = interrupt_call(interrupt)
+    console.print(f"[bold yellow]Approve {escape(name)}?[/] [yellow]{escape(arguments[:400])}[/]")
+    if approve != "ask":
+        console.print(f"[dim]--approve {approve}[/]")
+        return approve == "yes"
+    if not sys.stdin.isatty():
+        console.print("[dim]not a terminal; rejecting[/]")
+        return False
+    return console.input("[bold yellow]approve? [y/N][/] ").strip().lower() in {"y", "yes"}
+
+
+def send(client: httpx.Client, url: str, thread_id: str, message: str, approve: str = "ask") -> Renderer:
+    renderer = Renderer(console)
+    _stream(client, url, _body(thread_id, message=message), renderer)
+    # ASI09: a tool that needs approval pauses the run; the user decides, then the same thread resumes.
+    while renderer.interrupts and not renderer.error:
+        decisions = []
+        for interrupt in renderer.interrupts:
+            accepted = _decide(interrupt, approve)
+            decisions.append({"id": interrupt["id"], "status": "resolved", "payload": {"accepted": accepted}})
+        names = [interrupt_call(i)[0] for i in renderer.interrupts]
+        approved = [n for n, d in zip(names, decisions, strict=True) if d["payload"]["accepted"]]
+        renderer = Renderer(console)
+        if wait := next((SLOW_TOOLS[n] for n in approved if n in SLOW_TOOLS), None):
+            renderer.wait(wait)
+        _stream(client, url, _body(thread_id, resume={"interrupts": decisions}), renderer)
     return renderer
 
 
@@ -71,6 +110,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--as", dest="user", default="alice", help="user to act as (default: alice)")
     parser.add_argument("--thread", default=None, help="continue an existing thread id")
     parser.add_argument("--targets-file", type=Path, default=None, help="alternative targets.toml")
+    parser.add_argument(
+        "--approve",
+        choices=["ask", "yes", "no"],
+        default="ask",
+        help="answer to tool approval requests (default: ask; non-interactive input rejects)",
+    )
     args = parser.parse_args(argv)
 
     targets = load_targets(args.targets_file)
@@ -89,10 +134,11 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     console.print(f"[dim]target={args.target} url={url} as={args.user} thread={thread_id}[/]")
-    with httpx.Client(headers=headers, timeout=httpx.Timeout(120.0, connect=10.0)) as client:
+    # Reports can take a minute end to end (generation, isolated run, review), so the read timeout is generous.
+    with httpx.Client(headers=headers, timeout=httpx.Timeout(180.0, connect=10.0)) as client:
         try:
             if args.message:
-                return 1 if send(client, url, thread_id, " ".join(args.message)).error else 0
+                return 1 if send(client, url, thread_id, " ".join(args.message), args.approve).error else 0
             while True:
                 try:
                     message = console.input("[bold green]you>[/] ").strip()
@@ -101,7 +147,7 @@ def main(argv: list[str] | None = None) -> int:
                 if message in {"exit", "quit"}:
                     break
                 if message:
-                    send(client, url, thread_id, message)
+                    send(client, url, thread_id, message, args.approve)
         except httpx.HTTPError as exc:
             console.print(f"[bold red]connection error:[/] {exc}")
             return 1

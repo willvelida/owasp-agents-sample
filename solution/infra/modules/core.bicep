@@ -45,6 +45,14 @@ resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' 
   tags: tags
 }
 
+// ASI05: the report agent's own identity (image pull, Foundry, and Session Executor on the chart pool only). It has
+// no Cosmos DB access and no federated credential on the Blueprint, so it can never read health data.
+resource reportIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+  name: 'id-report-${resourceToken}'
+  location: location
+  tags: tags
+}
+
 resource registry 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
   name: 'cr${resourceToken}'
   location: location
@@ -65,11 +73,23 @@ resource acrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   }
 }
 
+resource reportAcrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(registry.id, reportIdentity.id, roles.acrPull)
+  scope: registry
+  properties: {
+    principalId: reportIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roles.acrPull)
+  }
+}
+
 resource environment 'Microsoft.App/managedEnvironments@2024-03-01' = {
   name: 'cae-${resourceToken}'
   location: location
   tags: tags
   properties: {
+    // Workload profiles are required by the Dynamic Sessions custom-container pool (ASI05).
+    workloadProfiles: [{ name: 'Consumption', workloadProfileType: 'Consumption' }]
     appLogsConfiguration: {
       destination: 'log-analytics'
       logAnalyticsConfiguration: {
@@ -195,6 +215,18 @@ resource foundryIdentityRoles 'Microsoft.Authorization/roleAssignments@2022-04-0
   }
 ]
 
+resource foundryReportRoles 'Microsoft.Authorization/roleAssignments@2022-04-01' = [
+  for role in foundryRoles: {
+    name: guid(foundry.id, reportIdentity.id, role)
+    scope: foundry
+    properties: {
+      principalId: reportIdentity.properties.principalId
+      principalType: 'ServicePrincipal'
+      roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', role)
+    }
+  }
+]
+
 resource foundryDeveloperRoles 'Microsoft.Authorization/roleAssignments@2022-04-01' = [
   for role in foundryRoles: if (!empty(principalId)) {
     name: guid(foundry.id, principalId, role)
@@ -212,6 +244,10 @@ output containerAppsEnvironmentDomain string = environment.properties.defaultDom
 output managedIdentityId string = identity.id
 output managedIdentityClientId string = identity.properties.clientId
 output managedIdentityPrincipalId string = identity.properties.principalId
+output reportIdentityId string = reportIdentity.id
+output reportIdentityClientId string = reportIdentity.properties.clientId
+output reportIdentityPrincipalId string = reportIdentity.properties.principalId
+output registryName string = registry.name
 output registryLoginServer string = registry.properties.loginServer
 output cosmosEndpoint string = cosmos.properties.documentEndpoint
 output foundryProjectEndpoint string = 'https://${foundry.properties.customSubDomainName}.services.ai.azure.com/api/projects/${project.name}'
