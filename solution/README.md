@@ -7,7 +7,7 @@ ms.topic: how-to
 
 ## Overview
 
-The solution keeps the [starter](../starter/README.md)'s file names, so `git diff --no-index starter solution` shows every control. Slice S1 (`s1-identity`) fixes ASI03: alice and bob sign in with Entra, the chat agent reaches the health MCP server on their behalf through an Entra Agent ID, and the MCP server returns only the token owner's data. Slice S2 (`s2-tools`) adds tool governance for ASI01, ASI02, and the runtime half of ASI04 (see [Tool governance](#tool-governance-asi01-asi02-asi04)). It runs in three ways:
+The solution keeps the [starter](../starter/README.md)'s file names, so `git diff --no-index starter solution` shows every control. Slice S1 (`s1-identity`) fixes ASI03: alice and bob sign in with Entra, the chat agent reaches the health MCP server on their behalf through an Entra Agent ID, and the MCP server returns only the token owner's data. Slice S2 (`s2-tools`) adds tool governance for ASI01, ASI02, and the runtime half of ASI04 (see [Tool governance](#tool-governance-asi01-asi02-asi04)). Slice S3 (`s3-reports`) adds the report agent with an isolated chart runner, an approval gate, a fail-closed reviewer, and an output guard for ASI05, ASI09, and the ASI07 baseline (see [Reports](#reports-asi05-asi07-asi09)). It runs in three ways:
 
 | Mode           | Identity                                                                 | Model and data                                                |
 |----------------|--------------------------------------------------------------------------|---------------------------------------------------------------|
@@ -21,7 +21,9 @@ The solution keeps the [starter](../starter/README.md)'s file names, so `git dif
 | `seed`          | `seed`                | none             | Loads [data/seed](../data/seed/README.md) keyed by `ALICE_OID` and `BOB_OID` |
 | `health-mcp`    | `health_mcp`          | 8001             | MCP server; every call needs an OBO bearer token                             |
 | `chat-api`      | `chat_api`            | 8000             | MAF agent behind AG-UI; every call needs a user token                        |
-| `entra-sidecar` | Entra SDK for AgentID | none             | OBO token exchange, inside chat-api's network namespace on 127.0.0.1         |
+| `report-agent`  | `report_agent`        | none             | A2A report agent; every call needs the chat agent's `Report.Generate` token  |
+| `chart-runner`  | `chart_runner`        | none             | Isolated chart runner: no network, read-only, UID 10001, Unix socket only    |
+| `entra-sidecar` | Entra SDK for AgentID | none             | OBO and app-only tokens, inside chat-api's network namespace on 127.0.0.1    |
 | `local-issuer`  | `local_issuer`        | 8100             | Offline profile only: stage-only token simulator                             |
 
 ## Identity flow (ASI03)
@@ -71,6 +73,24 @@ uv run python -m governance.descriptors --write
 ```
 
 [.gitattributes](../.gitattributes) checks the policy files out with LF on every platform, so the prompt hash is the same everywhere.
+
+## Reports (ASI05, ASI07, ASI09)
+
+`generate_report` sends a chart request to the [report agent](src/report_agent/app.py) over A2A (a2a-sdk 1.2.3, JSON-RPC). The report agent generates matplotlib code with the starter's own generator prompt, so the controls below do the work, not the model's restraint.
+
+| Control | Where | On detection, error, or breach |
+|---------|-------|--------------------------------|
+| Approval | `approval_required` in [governance.yaml](policies/governance.yaml), [tools_report.py](src/chat_api/tools_report.py) | The run ends with an AG-UI interrupt; nothing runs until the user approves. A rejection, a forged interrupt id, or another user's resume never runs the tool |
+| Decision-only resumes | [approvals.py](src/chat_api/approvals.py) | A resume that carries edited arguments (`editedArgs` or extra payload keys) gets HTTP 400 before the agent runs |
+| Report cap | `tool_limits` in [governance.yaml](policies/governance.yaml), [session_store.py](src/chat_api/session_store.py) | A third `generate_report` in a conversation aborts the batch (`MiddlewareFailure`) |
+| Caller identity | [identity.py](src/chat_api/identity.py), [report_agent/app.py](src/report_agent/app.py) | Every A2A call carries an app-only token from the sidecar's autonomous route (`aud` = `REPORT_API_APP_ID`, role `Report.Generate`, `azp` = chat agent). Anything else gets 401 before any work |
+| Typed payloads | [report_agent/schemas.py](src/report_agent/schemas.py) | Unknown fields, more than 62 points, odd labels, non-finite values, or a long request: `denied` (`rejected_by: validation`) |
+| Static check | [static_check.py](src/report_agent/static_check.py) | Imports outside `matplotlib`, `numpy`, `math`, `datetime`; `eval`, `exec`, `open`, `getattr`, `__import__`, dunder names and strings; `os`, `sys`, `subprocess`, `socket`; parse failure: `denied` (`rejected_by: static_check`) |
+| Isolated runner | [chart_runner/runner.py](src/chart_runner/runner.py), [chart_runner.Containerfile](chart_runner.Containerfile) | Locally a no-network, read-only, non-root container on a Unix socket; on Azure a Dynamic Sessions pool with egress disabled. Fresh worker per job, empty environment, rlimits, 10 s; PNG under 1 MB only. Failure: `denied` (`rejected_by: runner`) |
+| Reviewer | [reviewer.py](src/report_agent/reviewer.py) | Fresh agent per review; error, 10 s timeout, or a verdict other than `{"approved": <bool>}`: `denied` (`rejected_by: reviewer`), no chart |
+| Output guard | [middleware/output_guard.py](src/chat_api/middleware/output_guard.py) | Every reply with text is held back and classified by a separate, tool-less model call. Unsafe, indeterminate, an error, or 5 s: the fixed refusal and disclaimer replace the reply, in the stream and in the history |
+
+`REPORT_AGENT_CANARY=CANARY-ENV-R5X` is set in report-agent only (a Container Apps secret on Azure), as in the starter. `GET /diagnostics/report-agent` on chat-api (signed-in users only) reports whether report-agent is up and whether its canary is set, as booleans; the red team uses it as the ASI05 oracle. The CLI asks before approving a report (`--approve yes|no` for scripts) and shows a spinner while the report is generated and reviewed.
 
 ## Prerequisites
 
@@ -130,12 +150,12 @@ uv run biotrackr-chat --target solution-azure --as alice "summarise my sleep thi
 
 `azd up` runs the hooks in order:
 
-1. `preup` and `preprovision` create or reuse the Agent ID objects and write their IDs into the azd environment. (azd checks Bicep inputs before `preprovision` runs, so a fresh `azd up` needs `preup`.)
-2. Bicep provisions `rg-<env>`: Container Apps, ACR, a managed identity, Cosmos DB with local auth disabled, Foundry with key auth disabled, and monitoring.
-3. `postprovision` adds the Blueprint federated credential for the managed identity and seeds Cosmos DB with your Entra login.
+1. `preup` and `preprovision` create or reuse the Agent ID objects and write their IDs into the azd environment. (azd checks Bicep inputs before `preprovision` runs, so a fresh `azd up` needs `preup`.) When the registry already exists, they also build the chart runner image, so Bicep gives the session pool the real image.
+2. Bicep provisions `rg-<env>`: Container Apps (workload profiles), ACR, two managed identities (one for chat-api and health-mcp, one for the report agent only), the `chartrunner` Dynamic Sessions pool with egress disabled, Cosmos DB with local auth disabled, Foundry with key auth disabled, and monitoring.
+3. `postprovision` adds the Blueprint federated credential for the managed identity, seeds Cosmos DB with your Entra login, and on a fresh environment builds the chart runner image in ACR (linux/amd64, tagged by a content hash) and points the session pool at it ([build_chart_runner.ps1](scripts/hooks/build_chart_runner.ps1)). Until then the pool holds a placeholder image with no warm sessions.
 4. azd builds the images in ACR and deploys them.
 
-Images build in ACR from the `runtime` stage. Only chat-api has external ingress; health-mcp is internal, and the sidecar listens on 127.0.0.1 inside the chat-api replica.
+Images build in ACR from the `runtime` stage. Only chat-api has external ingress; health-mcp and report-agent are internal, and the sidecar listens on 127.0.0.1 inside the chat-api replica.
 
 ## Control markers
 
@@ -160,6 +180,12 @@ Controls carry a `# ASI0x: <control>` comment. Weaknesses that later slices fix 
 | ASI03 | `src/local_issuer/app.py`                         | Stage-only simulator: offline profile, 127.0.0.1, refuses Azure markers             |
 | ASI04 | `pyproject.toml`, `uv.lock`, `Containerfile`      | Exact pins, hashed lock, `uv sync --frozen`                                         |
 | ASI04 | `policies/mcp_tools.lock.json`, `src/governance/descriptors.py`, `src/chat_api/mcp_pinning.py` | (S2) MCP descriptor pinning at server startup and on every `tools/list` |
+| ASI05 | `src/report_agent/static_check.py`                | (S3) AST allowlist, defence in depth                                                |
+| ASI05 | `src/report_agent/executor.py`, `src/chart_runner/`, `compose.yaml`, `infra/modules/sessions_pool.bicep` | (S3) Code runs only in the isolated runner; never in-process |
+| ASI07 | `src/report_agent/app.py`, `schemas.py`, `src/chat_api/identity.py`, `tools_report.py` | (S3) App-only `Report.Generate` token with `azp` check; typed payloads; pinned local agent card |
+| ASI09 | `src/chat_api/tools_report.py`, `approvals.py`, `policies/governance.yaml` | (S3) Approval before every report; decision-only resumes; two reports per conversation |
+| ASI09 | `src/report_agent/reviewer.py`                    | (S3) Fresh-context reviewer, fails closed                                           |
+| ASI09 | `src/chat_api/middleware/output_guard.py`         | (S3) Fail-closed output classifier with fixed refusal and disclaimer                |
 
 ## Test
 
@@ -169,4 +195,4 @@ uv run pytest                                                 # unit tests, no n
 $env:RUN_INTEGRATION = "1"; uv run pytest tests/integration    # against the running entra-mode stack
 ```
 
-The unit tests cover the fail-closed contract. S1: 401 with zero agent runs, MCP 401 with zero Cosmos queries, alice's token never reading bob's records, and the simulator's negative cases. S2: input screening with zero model and tool calls; a poisoned tool result with no further model or tool call; denied, unknown, and out-of-policy calls and budget breaches aborting whole parallel batches (streaming and non-streaming); concurrent budget reservations; prompt and descriptor tampering exiting non-zero in a subprocess; and the governed agent against the real MCP server in process. The integration tests check that health-mcp cannot reach the sidecar and that `DefaultAzureCredential` gets a Foundry token inside chat-api.
+The unit tests cover the fail-closed contract. S1: 401 with zero agent runs, MCP 401 with zero Cosmos queries, alice's token never reading bob's records, and the simulator's negative cases. S2: input screening with zero model and tool calls; a poisoned tool result with no further model or tool call; denied, unknown, and out-of-policy calls and budget breaches aborting whole parallel batches (streaming and non-streaming); concurrent budget reservations; prompt and descriptor tampering exiting non-zero in a subprocess; and the governed agent against the real MCP server in process. S3: the static-check corpus; runner jobs with an empty environment, a wall clock, and PNG-only output; report-agent caller checks (401 with zero pipeline work); validation, generator, static-check, runner, and reviewer faults all `denied` with no chart; output classifier faults (unsafe, indeterminate, error, timeout) giving the fixed refusal, streamed and multi-turn; and approvals through the real AG-UI endpoint (single budget reservation, replay, rejection, forged ids, another user's resume, edited arguments, the report cap). The integration tests check that health-mcp cannot reach the sidecar, that `DefaultAzureCredential` gets a Foundry token inside chat-api, and that the chart runner has no network, no canary, no engine socket, no writes outside `/tmp`, and kills runaway jobs.

@@ -10,6 +10,7 @@ the check per call as defence in depth.
 import fnmatch
 import json
 import logging
+from collections import Counter
 from collections.abc import Awaitable, Callable, Iterable, Mapping
 from typing import Any
 
@@ -100,10 +101,13 @@ class ToolBatchGuard(ChatMiddleware):
         session_id = context.session.session_id if context.session else None
         if principal is None or not session_id:
             raise MiddlewareFailure("Tool batch aborted: no signed-in user or session for the tool budget")
-        if not await self._budget.reserve(principal.oid, session_id, len(calls)):
-            log.warning("tool batch aborted: budget of %d calls exceeded", self._budget.limit)
+        per_tool = Counter(str(call.name) for call in calls)
+        if not await self._budget.reserve(principal.oid, session_id, len(calls), per_tool):
+            limited = {n: self._budget.tool_limits[n] for n in per_tool if n in self._budget.tool_limits}
+            log.warning("tool batch aborted: budget of %d calls (per-tool %s) exceeded", self._budget.limit, limited)
             raise MiddlewareFailure(
                 f"Tool batch aborted: this conversation has reached its limit of {self._budget.limit} tool calls"
+                + "".join(f" or {limit} {name} calls" for name, limit in limited.items())
             )
 
 

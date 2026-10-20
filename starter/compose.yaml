@@ -61,6 +61,7 @@ services:
     environment:
       <<: *app-env
       MCP_URL: http://health-mcp:8001/mcp
+      REPORT_AGENT_URL: http://report-agent:8002/
     ports:
       - "127.0.0.1:8000:8000"
     healthcheck:
@@ -71,3 +72,22 @@ services:
     depends_on:
       health-mcp:
         condition: service_healthy
+      report-agent:
+        condition: service_healthy
+
+  report-agent:
+    <<: *app
+    command: ["python", "-m", "report_agent"]
+    environment:
+      <<: *app-env
+      REPORT_AGENT_URL: http://report-agent:8002/
+      # ASI05: a stand-in secret. Generated chart code runs in this process, so it can read it.
+      REPORT_AGENT_CANARY: CANARY-ENV-R5X
+    # ASI07 (starter): published with no auth; anyone on the host can send it tasks.
+    ports:
+      - "127.0.0.1:8002:8002"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/healthz')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20

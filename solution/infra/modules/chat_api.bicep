@@ -12,6 +12,8 @@ param chatAgentAppId string
 param healthMcpAppId string
 param cliAppId string
 param healthMcpUrl string
+param reportApiAppId string
+param reportAgentUrl string
 param foundryProjectEndpoint string
 param modelName string
 param cosmosEndpoint string
@@ -63,6 +65,7 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'CLI_APP_ID', value: cliAppId }
             { name: 'SIDECAR_URL', value: 'http://localhost:5000' }
             { name: 'MCP_URL', value: '${healthMcpUrl}/mcp' }
+            { name: 'REPORT_AGENT_URL', value: '${reportAgentUrl}/' }
             { name: 'FOUNDRY_PROJECT_ENDPOINT', value: foundryProjectEndpoint }
             { name: 'FOUNDRY_MODEL', value: modelName }
             { name: 'COSMOS_ENDPOINT', value: cosmosEndpoint }
@@ -92,6 +95,13 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'DownstreamApis__HealthMcp__BaseUrl', value: '${healthMcpUrl}/' }
             { name: 'DownstreamApis__HealthMcp__Scopes__0', value: 'api://${healthMcpAppId}/.default' }
             { name: 'DownstreamApis__HealthMcp__RequestAppToken', value: 'false' }
+            // ASI07 baseline: app-only token for the report agent as the chat agent identity (autonomous route).
+            { name: 'DownstreamApis__ReportApi__BaseUrl', value: '${reportAgentUrl}/' }
+            { name: 'DownstreamApis__ReportApi__Scopes__0', value: 'api://${reportApiAppId}/.default' }
+            { name: 'DownstreamApis__ReportApi__RequestAppToken', value: 'true' }
+            // Newer sidecar builds ignore AgentIdentity on the unauthenticated route unless this is set; only the
+            // chat-api container shares this loopback.
+            { name: 'Sidecar__AllowOverrides__GetAuthorizationHeaderUnauthenticated', value: 'true' }
             { name: 'Logging__LogLevel__Default', value: 'Warning' }
             { name: 'Logging__LogLevel__Microsoft.Identity.Web', value: 'Information' }
           ]

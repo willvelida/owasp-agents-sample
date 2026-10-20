@@ -151,7 +151,7 @@ flowchart TD
 
 ## Report generation (ASI05, ASI07, ASI09)
 
-Generated chart code never runs in the report agent process ([ADR-0016](adr/0016-isolated-chart-runner.md)).
+Generated chart code never runs in the report agent process ([ADR-0016](adr/0016-isolated-chart-runner.md)). From `s3-reports`, the A2A request is typed and carries an app-only `Report.Generate` token from the chat agent identity (the sidecar's autonomous route); message signing with nonce and timestamp arrives in S5. Every chat reply also passes the fail-closed output guard ([ADR-0021](adr/0021-output-policy-for-clinical-advice.md)), and an approval resume may only approve or reject, never edit the arguments.
 
 ```mermaid
 sequenceDiagram
@@ -200,6 +200,7 @@ flowchart LR
         end
         sessions["Dynamic Sessions pool<br/>custom container, egress disabled"]
         mi["User-assigned managed identity"]
+        reportmi["Report agent managed identity<br/>Foundry, ACR pull, Session Executor"]
         cosmos[("Cosmos DB<br/>Entra auth only")]
         foundry["Microsoft Foundry"]
         appconfig["App Configuration<br/>kill switch"]
@@ -215,7 +216,8 @@ flowchart LR
     report --> sessions
     mi -.-> chat
     mi -.-> mcp
-    mi -.-> report
+    reportmi -.-> report
+    reportmi -.-> sessions
     chat --> cosmos
     mcp --> cosmos
     chat --> foundry

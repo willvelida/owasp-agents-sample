@@ -51,6 +51,25 @@ class DownstreamTokenProvider:
             raise IdentityError("OBO exchange returned no bearer header")
         return header
 
+    async def report_api_header(self) -> str:
+        """ASI07: an app-only token for the report agent (aud = REPORT_API_APP_ID, role Report.Generate).
+
+        The report agent never sees user data access rights: no user token is sent, so this is the
+        sidecar's autonomous endpoint, not OBO.
+        """
+        url = f"{self.base_url}/AuthorizationHeaderUnauthenticated/ReportApi"
+        try:
+            async with httpx.AsyncClient(timeout=self._timeout) as client:
+                response = await client.get(url, params={"AgentIdentity": self.agent_identity})
+        except httpx.HTTPError as exc:
+            raise IdentityError(f"identity endpoint unreachable: {exc}") from exc
+        if response.status_code != 200:
+            raise IdentityError(f"report API token request failed with HTTP {response.status_code}")
+        header = response.json().get("authorizationHeader", "")
+        if not header.startswith("Bearer "):
+            raise IdentityError("report API token request returned no bearer header")
+        return header
+
 
 def mcp_headers(_: dict) -> dict[str, str]:
     """header_provider for MCPStreamableHTTPTool. Without an OBO header the MCP server returns 401."""

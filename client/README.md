@@ -37,6 +37,7 @@ uv run biotrackr-chat --as alice --thread <id> "and my activity?"   # continue a
 ```
 
 Tool calls render as `> tool name({...args})` and results as `< {...}`. Unauthenticated solution requests print `HTTP 401`.
+ the solution asks for approval (`generate_report`), the CLI shows the tool and its arguments and asks `approve? [y/N]`, then resumes the same thread with your decision. `--approve yes` or `--approve no` answers for scripts; without a terminal the CLI rejects. A spinner shows while a report is generated and reviewed.
 
 ## Lint
 

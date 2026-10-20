@@ -28,6 +28,16 @@ services:
       context: .
       target: runtime
       remoteBuild: true
+  # S3: A2A report agent. The chart runner image is built by the postprovision hook (it runs in a session pool).
+  report-agent:
+    project: .
+    language: docker
+    host: containerapp
+    docker:
+      path: ./Containerfile
+      context: .
+      target: runtime
+      remoteBuild: true
 
 hooks:
   # Entra Agent ID objects first, so Bicep receives the typed IDs as parameters. azd checks Bicep inputs before

@@ -48,6 +48,7 @@ class Simulator:
         self.blueprint_app_id = env["BLUEPRINT_APP_ID"]
         self.chat_agent_app_id = env["CHAT_AGENT_APP_ID"]
         self.health_mcp_app_id = env["HEALTH_MCP_APP_ID"]
+        self.report_api_app_id = env.get("REPORT_API_APP_ID", "")
         self.cli_app_id = env["CLI_APP_ID"]
         self.users = {
             "alice": {"oid": env["ALICE_OID"], "name": "Alice Example", "upn": env.get("ALICE_UPN", "alice@local")},
@@ -127,6 +128,21 @@ class Simulator:
             }
         )
 
+    def app_token(self, agent_identity: str) -> str:
+        """Same contract as the sidecar's autonomous endpoint: an app-only report API token for the chat agent."""
+        if agent_identity != self.chat_agent_app_id or not self.report_api_app_id:
+            raise PermissionError("unknown agent identity or no report API configured")
+        return self._sign(
+            {
+                "aud": self.report_api_app_id,
+                "azp": self.chat_agent_app_id,
+                "roles": ["Report.Generate"],
+                "oid": self.chat_agent_app_id,
+                "sub": self.chat_agent_app_id,
+                "idtyp": "app",
+            }
+        )
+
 
 class _StaticJwks:
     """Lets the simulator validate its own user tokens without an HTTP round trip."""
@@ -180,6 +196,16 @@ def create_app(sim: Simulator) -> FastAPI:
         authorization: str | None = Header(default=None),
     ) -> dict[str, str]:
         return await _obo(agent_identity, authorization)
+
+    # Mirrors the sidecar's autonomous route (no user token): chat agent -> report agent (ASI07 baseline).
+    @app.get("/AuthorizationHeaderUnauthenticated/ReportApi")
+    async def autonomous_header(agent_identity: str = Query(..., alias="AgentIdentity")) -> dict[str, str]:
+        try:
+            token = sim.app_token(agent_identity)
+        except PermissionError as exc:
+            log.warning("app token refused: %s", exc)
+            raise HTTPException(status_code=401, detail="unauthorized") from exc
+        return {"authorizationHeader": f"Bearer {token}"}
 
     return app
 

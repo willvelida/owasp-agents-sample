@@ -21,6 +21,7 @@ dependencies = [
     "httpx==0.28.1",
     "aiohttp==3.14.5",
     "pyyaml==6.0.3",
+    "a2a-sdk[http-server]==1.2.3",
 ]
 
 [dependency-groups]
@@ -29,13 +30,23 @@ dev = [
     "pytest==9.1.1",
     "pytest-asyncio==1.4.0",
 ]
+# ASI05: the isolated chart runner image installs only this group (chart_runner.Containerfile).
+chart = [
+    "matplotlib==3.11.2",
+    "numpy==2.5.4",
+    "starlette==1.8.0",
+    "uvicorn==0.54.0",
+]
+
+[tool.uv]
+default-groups = ["dev", "chart"]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/chat_api", "src/health_mcp", "src/seed", "src/local_issuer", "src/auth_common", "src/governance"]
+packages = ["src/chat_api", "src/health_mcp", "src/seed", "src/local_issuer", "src/auth_common", "src/governance", "src/report_agent", "src/chart_runner"]
 
 [tool.ruff]
 extend = "../ruff.toml"

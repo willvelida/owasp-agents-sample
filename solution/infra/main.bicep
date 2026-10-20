@@ -27,10 +27,15 @@ param chatAgentAppId string
 param healthMcpAppId string
 @minLength(36)
 param cliAppId string
+@minLength(36)
+param reportApiAppId string
 
 // azd sets these after the first deploy so re-provisioning keeps the deployed images.
 param chatApiExists bool = false
 param healthMcpExists bool = false
+param reportAgentExists bool = false
+@description('Chart runner image in ACR, set by the postprovision hook (CHART_RUNNER_IMAGE). Empty on a fresh environment.')
+param chartRunnerImage string = ''
 
 param modelName string = 'gpt-4.1'
 param modelVersion string = '2025-04-14'
@@ -79,6 +84,44 @@ module healthMcp 'modules/health_mcp.bicep' = {
   }
 }
 
+module sessionsPool 'modules/sessions_pool.bicep' = {
+  scope: rg
+  name: 'sessions-pool'
+  params: {
+    location: location
+    tags: tags
+    environmentId: core.outputs.containerAppsEnvironmentId
+    registryServer: core.outputs.registryLoginServer
+    reportIdentityId: core.outputs.reportIdentityId
+    reportIdentityPrincipalId: core.outputs.reportIdentityPrincipalId
+    image: chartRunnerImage
+  }
+}
+
+module reportAgent 'modules/report_agent.bicep' = {
+  scope: rg
+  name: 'report-agent'
+  params: {
+    location: location
+    tags: tags
+    environmentId: core.outputs.containerAppsEnvironmentId
+    environmentDomain: core.outputs.containerAppsEnvironmentDomain
+    reportIdentityId: core.outputs.reportIdentityId
+    reportIdentityClientId: core.outputs.reportIdentityClientId
+    registryServer: core.outputs.registryLoginServer
+    exists: reportAgentExists
+    tenantId: tenantId
+    chatAgentAppId: chatAgentAppId
+    reportApiAppId: reportApiAppId
+    foundryProjectEndpoint: core.outputs.foundryProjectEndpoint
+    modelName: modelName
+    sessionsEndpoint: sessionsPool.outputs.poolManagementEndpoint
+    appInsightsConnectionString: core.outputs.appInsightsConnectionString
+    // The same public stand-in value as Compose; what matters is that it is held as a secret by this app only.
+    canary: 'CANARY-ENV-R5X'
+  }
+}
+
 module chatApi 'modules/chat_api.bicep' = {
   scope: rg
   name: 'chat-api'
@@ -96,6 +139,8 @@ module chatApi 'modules/chat_api.bicep' = {
     healthMcpAppId: healthMcpAppId
     cliAppId: cliAppId
     healthMcpUrl: healthMcp.outputs.url
+    reportApiAppId: reportApiAppId
+    reportAgentUrl: reportAgent.outputs.url
     foundryProjectEndpoint: core.outputs.foundryProjectEndpoint
     modelName: modelName
     cosmosEndpoint: core.outputs.cosmosEndpoint
@@ -114,3 +159,8 @@ output FOUNDRY_MODEL string = modelName
 output COSMOS_ENDPOINT string = core.outputs.cosmosEndpoint
 output CHAT_API_URL string = chatApi.outputs.url
 output HEALTH_MCP_INTERNAL_URL string = healthMcp.outputs.url
+output REPORT_AGENT_INTERNAL_URL string = reportAgent.outputs.url
+output AZURE_CONTAINER_REGISTRY_NAME string = core.outputs.registryName
+output CHART_SESSION_POOL_NAME string = sessionsPool.outputs.name
+output CHART_SESSIONS_ENDPOINT string = sessionsPool.outputs.poolManagementEndpoint
+output REPORT_IDENTITY_PRINCIPAL_ID string = core.outputs.reportIdentityPrincipalId

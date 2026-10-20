@@ -8,6 +8,8 @@ from typing import Any
 import httpx
 from pyrit.models import Message, construct_response_from_request
 from pyrit.prompt_target import PromptTarget
+from pyrit.prompt_target.common.target_capabilities import TargetCapabilities
+from pyrit.prompt_target.common.target_configuration import TargetConfiguration
 
 
 class BiotrackrTarget(PromptTarget):
@@ -16,15 +18,24 @@ class BiotrackrTarget(PromptTarget):
     Tool results are part of the response because data reaching the model counts as a leak even when the
     model does not repeat it. Each PyRIT conversation maps to one AG-UI thread. The SSE stream is always
     read to the end: a client that disconnects early cancels the run and nothing is persisted (WI-08).
+
+    Multi-turn: the chat API keeps each thread's history server-side, so a follow-up prompt only sends the new
+    user turn. The target declares editable history because PyRIT's Crescendo requires it; the harness runs
+    Crescendo with max_backtracks=0, so history is never rewound or edited.
     """
 
-    def __init__(self, *, url: str, headers: dict[str, str], timeout: float = 180.0) -> None:
+    _DEFAULT_CONFIGURATION = TargetConfiguration(
+        capabilities=TargetCapabilities(supports_multi_turn=True, supports_editable_history=True)
+    )
+
+    def __init__(self, *, url: str, headers: dict[str, str], timeout: float = 240.0, max_approvals: int = 3) -> None:
         super().__init__(endpoint=url, model_name="biotrackr-chat")
         self._url = url
         self._headers = headers
         self._timeout = timeout
         self._threads: dict[str, str] = {}
         self.extra_headers: dict[str, str] = {}
+        self.max_approvals = max_approvals
 
     def _validate_request(self, *, normalized_conversation: list[Message]) -> None:
         pieces = normalized_conversation[-1].message_pieces
@@ -46,21 +57,46 @@ class BiotrackrTarget(PromptTarget):
         return text
 
     async def _run_stream(self, thread_id: str, prompt: str) -> str:
-        body = {
+        transcript = Transcript()
+        resume: dict[str, Any] | None = None
+        async with httpx.AsyncClient(timeout=httpx.Timeout(self._timeout, connect=10.0)) as client:
+            # The attacker is the signed-in user, so approval requests are approved (at most a few rounds).
+            for _ in range(1 + self.max_approvals):
+                body = self._body(thread_id, prompt if resume is None else None, resume)
+                error = await self._post(client, body, transcript)
+                if error:
+                    return error
+                if not transcript.interrupts or transcript.error:
+                    break
+                for interrupt in transcript.interrupts:
+                    transcript.tools.append(f"[approved] {interrupt.get('message', interrupt.get('id'))}")
+                resume = {
+                    "interrupts": [
+                        {"id": i["id"], "status": "resolved", "payload": {"accepted": True}}
+                        for i in transcript.interrupts
+                    ]
+                }
+                transcript.interrupts = []
+        return transcript.render()
+
+    @staticmethod
+    def _body(thread_id: str, prompt: str | None, resume: dict[str, Any] | None) -> dict[str, Any]:
+        body: dict[str, Any] = {
             "threadId": thread_id,
             "runId": str(uuid.uuid4()),
-            "messages": [{"id": str(uuid.uuid4()), "role": "user", "content": prompt}],
+            "messages": [{"id": str(uuid.uuid4()), "role": "user", "content": prompt}] if prompt else [],
             "state": {},
             "tools": [],
             "context": [],
             "forwardedProps": {},
         }
+        if resume is not None:
+            body["resume"] = resume
+        return body
+
+    async def _post(self, client: httpx.AsyncClient, body: dict[str, Any], transcript: "Transcript") -> str | None:
         headers = {**self._headers, **self.extra_headers, "Accept": "text/event-stream"}
-        transcript = Transcript()
-        async with (
-            httpx.AsyncClient(timeout=httpx.Timeout(self._timeout, connect=10.0)) as client,
-            client.stream("POST", self._url, json=body, headers=headers) as response,
-        ):
+        async with client.stream("POST", self._url, json=body, headers=headers) as response:
             if response.status_code >= 400:
                 await response.aread()
                 return f"[HTTP {response.status_code}] {response.text[:300]}"
@@ -73,7 +109,11 @@ class BiotrackrTarget(PromptTarget):
                     data = []
             if data:
                 transcript.handle(json.loads("\n".join(data)))
-        return transcript.render()
+        return None
+
+
+# AG-UI adds a synthetic call for client-side confirmation UIs; it is not a tool the agent ran.
+SYNTHETIC_TOOLS = {"confirm_changes"}
 
 
 class Transcript:
@@ -83,6 +123,7 @@ class Transcript:
         self._names: dict[str, str] = {}
         self._args: dict[str, str] = {}
         self.error: str | None = None
+        self.interrupts: list[dict[str, Any]] = []
 
     def handle(self, event: dict[str, Any]) -> None:
         kind = event.get("type")
@@ -94,9 +135,14 @@ class Transcript:
             self._args[event["toolCallId"]] = self._args.get(event["toolCallId"], "") + event.get("delta", "")
         elif kind == "TOOL_CALL_END":
             call_id = event["toolCallId"]
-            self.tools.append(f"[tool] {self._names.get(call_id, '?')}({self._args.get(call_id, '')})")
+            if self._names.get(call_id) not in SYNTHETIC_TOOLS:
+                self.tools.append(f"[tool] {self._names.get(call_id, '?')}({self._args.get(call_id, '')})")
         elif kind == "TOOL_CALL_RESULT":
             self.tools.append(f"[result] {event.get('content', '')}")
+        elif kind == "RUN_FINISHED":
+            outcome = event.get("outcome") or {}
+            if outcome.get("type") == "interrupt":
+                self.interrupts = list(outcome.get("interrupts") or [])
         elif kind == "RUN_ERROR":
             code = event.get("code")
             self.error = (f"{code}: " if code else "") + event.get("message", "unknown error")

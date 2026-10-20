@@ -23,6 +23,17 @@ allowed_tools:
   - get_vitals_by_date
   - get_vitals_by_date_range
   - get_vitals_records
+  # ASI05, ASI07, ASI09 (S3): report agent over A2A.
+  - generate_report
+  - check_report_status
+
+# Per-conversation caps for single tools, counted with the call budget (MAF max_invocations is process-wide).
+tool_limits:
+  generate_report: 2
+
+# ASI09: the user approves these calls before they run (MAF approval_mode=always_require, AG-UI interrupt).
+approval_required:
+  - generate_report
 
 denied_tools:
   - "*delete*"
