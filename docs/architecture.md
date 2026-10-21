@@ -39,7 +39,7 @@ flowchart LR
     pyrit([PyRIT redteam])
 
     subgraph compose["Podman Compose, rootless (local only)"]
-        chat["chat-api<br/>MAF Agent + AG-UI<br/>no auth, single_user=True"]
+        chat["chat-api<br/>MAF Agent + AG-UI<br/>no auth, trusts X-User-Id"]
         mcp["health-mcp<br/>13 tools incl. delete_records<br/>user_id is a parameter"]
         report["report-agent (A2A)<br/>exec() generated code<br/>reviewer fails open"]
         cosmos[("Cosmos DB emulator<br/>health + conversations")]
@@ -254,11 +254,12 @@ The architecture is built up in vertical slices. Each one ends in a git tag that
 | `s3-reports`      | report-agent with `exec()`              | report-agent, chart-runner, output guard, approvals      | report-agent app, Dynamic Sessions pool                               |
 | `s4-operations`   | No change                               | Memory guard, resilience, kill switch, audit, rogue detection | App Configuration, `chat_history` and `audit` containers         |
 | `s5-supply-chain` | No change                               | Signed A2A messages, `a2a-keys` service, CI workflows    | None (`azd up` for the new signing-key parameters)                    |
-| `s6-talk-ready`   | No change                               | Runbook                                                  | None                                                                  |
+| `s6-talk-ready`   | No change                               | Demo runbook, saved scorecards, one retry for a cold kill-switch read | None (`azd deploy`)                                      |
 
 ## Related documents
 
 * [Architecture decision records](adr/README.md)
+* [Demo runbook](demo-runbook.md)
 * [Research](research.md)
 * [Requirements](requirements.md)
 * [Talk abstract](abstract.md)

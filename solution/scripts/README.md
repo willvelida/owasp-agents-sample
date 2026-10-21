@@ -10,11 +10,16 @@ ms.topic: how-to
 | Script                                       | Runs as                      | Purpose                                                                 |
 |----------------------------------------------|------------------------------|-------------------------------------------------------------------------|
 | [provision_agent_id.ps1](provision_agent_id.ps1) | You, or the azd hooks        | Creates or reuses the Entra Agent ID objects, grants, and test users    |
-| [hooks/preprovision.ps1](hooks/preprovision.ps1) | azd `preup`, `preprovision`  | Runs the provisioning script and writes the typed IDs into the azd env  |
-| [hooks/postprovision.ps1](hooks/postprovision.ps1) | azd `postprovision`          | Adds the Blueprint federated credential, then runs `seed.ps1`           |
+| [hooks/preprovision.ps1](hooks/preprovision.ps1) | azd `preup`, `preprovision`  | Provisions Agent ID, stores typed IDs and the signing key pair, builds the chart runner when ACR exists |
+| [hooks/postprovision.ps1](hooks/postprovision.ps1) | azd `postprovision`          | Adds the federated credential, seeds Cosmos, configures the chart runner, and creates a missing kill-switch key |
 | [seed.ps1](seed.ps1)                         | `postprovision` hook         | Seeds Azure Cosmos DB by alice and bob's object ids with your Entra login |
 
 ## Prerequisites
+
+Obtain operator approval before running provisioning hooks, including a preview
+that may invoke them. They can change Entra objects, build images in ACR, seed
+data, and update Azure configuration. See the [demo runbook](../../docs/demo-runbook.md)
+for read-only pre-show checks instead.
 
 * PowerShell 7 with `Microsoft.Graph.Authentication` (`Install-Module Microsoft.Graph.Authentication -Scope CurrentUser`)
 * Agent ID Developer or Agent ID Administrator, plus User Administrator, in the tenant

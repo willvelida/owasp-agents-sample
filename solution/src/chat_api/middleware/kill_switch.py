@@ -8,8 +8,8 @@ Checked at the start of every run and again before every tool call:
   (App Configuration Data Reader). A successful read is cached for 10 seconds, so a flip takes effect within
   10 seconds and the store sees at most one request per replica per 10 seconds, and only while runs arrive.
 
-Fail closed: an unreachable store (after the cached value expires), a missing key, an unknown value, or any error
-in the check stops the run. The reply is fixed text; no context provider, model, or tool runs.
+Fail closed: an unreachable store (after the cached value expires and one retry), a missing key, an unknown value,
+or any error in the check stops the run. The reply is fixed text; no context provider, model, or tool runs.
 """
 
 import asyncio
@@ -35,6 +35,7 @@ ENV_VARIABLE = "AGENT_KILL_SWITCH"
 APP_CONFIG_KEY = "agent-kill-switch"
 CACHE_SECONDS = 10.0
 READ_TIMEOUT_SECONDS = 3.0
+READ_ATTEMPTS = 2
 SUSPENDED_REPLY = "Biotrackr chat is paused by its operators right now. Your records are safe; please try again later."
 _OFF = {"off", "false", "0", "no", "disengaged"}
 _ON = {"on", "true", "1", "yes", "engaged"}
@@ -99,8 +100,7 @@ class AppConfigKillSwitch:
             if self._cached is not None and now - self._cached[0] < self._cache_seconds:
                 return self._cached[1]
             try:
-                setting = await asyncio.wait_for(self._client.get_configuration_setting(key=self._key), self._timeout)
-                value = parse(setting.value)
+                value = await self._read()
             except Exception as exc:
                 # Missing key, no permission, timeout, or an unreachable store: stop, and ask again next run.
                 log.error("kill switch unreadable (%s); refusing the run", type(exc).__name__)
@@ -108,6 +108,20 @@ class AppConfigKillSwitch:
                 return True
             self._cached = (now, value)
             return value
+
+    async def _read(self) -> bool:
+        # One retry (WI-30): the first read on a new revision can time out while the managed identity token is cold.
+        # Only a successful read reaches parse(); two failures raise and the caller refuses the run.
+        for attempt in range(READ_ATTEMPTS):
+            try:
+                setting = await asyncio.wait_for(self._client.get_configuration_setting(key=self._key), self._timeout)
+            except Exception as exc:
+                if attempt + 1 == READ_ATTEMPTS:
+                    raise
+                log.warning("kill switch read failed (%s); retrying once", type(exc).__name__)
+                continue
+            return parse(setting.value)
+        raise RuntimeError("unreachable")
 
 
 def from_environment() -> KillSwitch:

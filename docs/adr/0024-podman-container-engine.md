@@ -18,7 +18,7 @@ The local stack runs the Cosmos DB emulator, chat API, health MCP server, report
 ## Decision
 
 * Podman is the only local container engine. Docker Desktop is not required and is stopped during demos.
-* The Podman machine runs rootless (switched on 2026-10-18). On WSL, CPU and memory come from `.wslconfig`, not `podman machine set`; the current defaults give 31 GiB and 12 CPUs, and the sample needs at least 8 GiB.
+* The Podman machine runs rootless (switched on 2026-10-18). On WSL, CPU and memory come from `.wslconfig`, not `podman machine set`; allocation depends on the host. Check the actual available memory inside WSL before each demo; the sample needs at least 8 GiB.
 * `podman compose` is pinned in `containers.conf` to a standalone docker-compose v2 provider, for full Compose spec support (profiles, internal networks, `cap_drop`, `security_opt`, health checks).
 * Compose files are named `compose.yaml` and build files are named `Containerfile`.
 * uv and Python run on the host. A dev container is optional and configured for Podman with no nested engine.

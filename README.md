@@ -1,4 +1,7 @@
-# owasp-agents-sample
+---
+title: OWASP agents sample
+description: Mirrored insecure and hardened health agents demonstrating the OWASP Agentic Top 10 with local and Azure demos
+---
 
 Sample app on applying OWASP Top 10 for Agents to your own agent.
 
@@ -26,10 +29,16 @@ The work ships in vertical slices, each tagged when it runs end to end ([ADR-002
 | `s3-reports`    | S2 plus reports: generated-code execution and clinical advice succeed on the starter; an isolated chart runner (Dynamic Sessions on Azure), approval, a fail-closed reviewer, and an output guard block them (ASI05, ASI09, ASI07 baseline). All five live demos |
 | `s4-operations` | S3 plus operations: memory poisoning, a hung dependency, a tool-call burst, and an ignored kill switch succeed on the starter; MemoryGuard and bounded, expiring history, timeouts and circuit breakers, a hash-chained audit trail, per-user rogue detection, and a kill switch (App Configuration on Azure) block them (ASI06, ASI08, ASI10) |
 | `s5-supply-chain` | S4 plus signed A2A and CI: forged, replayed, and tampered report-agent requests succeed on the starter; single-use Ed25519 signatures over the exact body with a 60 s window and a replay cache block them (ASI07). Dependabot, CodeQL, SBOMs, lock checks, SHA-pinned actions, digest-pinned images, and `mcp-scan` in CI (ASI04) |
+| `s6-talk-ready` | S5 plus the [demo runbook](docs/demo-runbook.md), saved scorecards for all four targets, and two timed rehearsals (Azure and offline). The kill switch retries a cold App Configuration read once and still fails closed |
 
 `git diff --no-index starter solution` shows every control.
 
-## Quick start (S5)
+## Quick start (S6)
+
+For the 25-minute talk, start with the [demo runbook](docs/demo-runbook.md):
+prebuild and warm existing deployments, run the five live risks, then show the
+saved scorecards. The provisioning commands below are setup, not on-stage steps.
+Obtain operator approval before Azure provisioning or fault injection.
 
 You need Podman configured as in [docs/podman.md](docs/podman.md), uv, Python 3.12, the Azure CLI, and azd.
 
@@ -75,6 +84,7 @@ See [solution/README.md](solution/README.md) for offline mode, DevUI, and the co
 ## Documentation
 
 * [Architecture](docs/architecture.md)
+* [Demo runbook](docs/demo-runbook.md)
 * [Architecture decision records](docs/adr/README.md)
 * [Research](docs/research.md)
 * [Podman setup](docs/podman.md)

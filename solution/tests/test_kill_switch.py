@@ -165,6 +165,42 @@ async def test_app_configuration_fails_closed_once_the_cache_expires(failure):
     assert await switch.engaged() is True
 
 
+# WI-30: one retry for a cold first read; every path that does not read "off" still refuses.
+@pytest.mark.parametrize(
+    ("first", "second", "engaged"),
+    [
+        ("hang", "off", False),
+        (RuntimeError("cold token"), "off", False),
+        ("hang", "hang", True),
+        ("hang", "on", True),
+        (RuntimeError("unreachable"), KeyError("missing key"), True),
+        ("hang", "garbage", True),
+    ],
+    ids=["timeout-then-off", "error-then-off", "timeout-twice", "timeout-then-on", "error-then-missing", "unknown"],
+)
+async def test_app_configuration_retries_a_failed_read_once(first, second, engaged):
+    client = FakeAppConfig(first, second)
+    switch = AppConfigKillSwitch("https://x", client=client, clock=Clock(), timeout=0.1)
+    assert await switch.engaged() is engaged
+    assert client.reads == 2
+
+
+async def test_app_configuration_does_not_retry_a_successful_read():
+    for value, engaged in (("off", False), ("on", True), ("garbage", True)):
+        client = FakeAppConfig(value, "off")
+        switch = AppConfigKillSwitch("https://x", client=client, clock=Clock())
+        assert await switch.engaged() is engaged
+        assert client.reads == 1
+
+
+async def test_a_failed_retry_is_not_cached():
+    clock, client = Clock(), FakeAppConfig("hang", "hang", "off")
+    switch = AppConfigKillSwitch("https://x", client=client, clock=clock, timeout=0.1)
+    assert await switch.engaged() is True
+    assert await switch.engaged() is False
+    assert client.reads == 3
+
+
 def test_agui_streams_the_fixed_reply_as_text(chat_validator, sim):
     from fastapi.testclient import TestClient
     from test_chat_auth import SpyStore, agui_body

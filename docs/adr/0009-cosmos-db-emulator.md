@@ -21,7 +21,7 @@ Both Compose files run the Cosmos DB vNext emulator with a one-shot seed job. Th
 
 ### Positive
 
-* Fully offline local demo
+* Local data store without a cloud Cosmos DB dependency (the model still needs Foundry)
 * Identical data for both stacks
 
 ### Negative
