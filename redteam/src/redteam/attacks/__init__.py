@@ -46,6 +46,8 @@ class Attack:
     deadline: float | None = None
     # With `probe`: the judge question that ends the Crescendo planting phase early once the rule is accepted.
     plant_judge: str | None = None
+    # Model-free probe instead of a chat prompt ("asi07": asi07_forge.probe, run inside chat-api's container).
+    direct: str | None = None
 
 
 def canary(value: str) -> dict[str, str]:
@@ -53,15 +55,17 @@ def canary(value: str) -> dict[str, str]:
 
 
 def catalogue() -> list[Attack]:
-    from redteam.attacks import asi01, asi02, asi03, asi05, asi06, asi08, asi09, asi10
+    from redteam.attacks import asi01, asi02, asi03, asi05, asi06, asi07_forge, asi08, asi09, asi10
 
     # ASI10 runs last: its burst quarantines bob, and its kill-switch fault recreates chat-api (which also clears it).
+    # ASI07 is model-free and sends nothing through the chat API, so it cannot spend a user's budget or trip a detector.
     return [
         *asi01.ATTACKS,
         *asi02.ATTACKS,
         *asi03.ATTACKS,
         *asi05.ATTACKS,
         *asi06.ATTACKS,
+        *asi07_forge.ATTACKS,
         *asi08.ATTACKS,
         *asi09.ATTACKS,
         *asi10.ATTACKS,

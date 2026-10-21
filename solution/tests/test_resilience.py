@@ -348,10 +348,11 @@ def test_harden_model_client_sets_timeouts_retries_and_loop_bounds():
 
 
 async def test_report_agent_breaker_fails_fast_while_the_agent_is_down():
-    from test_report_agent import SimTokens
+    from test_report_agent import A2A_KEY, SimTokens
 
     from chat_api.tools_report import ReportService
-    from report_agent.schemas import DataPoint, ReportRequest
+    from report_agent.a2a_security import A2ASigner
+    from report_agent.schemas import SCHEMA_VERSION, DataPoint, ReportRequest
 
     requests = 0
 
@@ -369,8 +370,11 @@ async def test_report_agent_breaker_fails_fast_while_the_agent_is_down():
         "http://report-agent/",
         transport=httpx.MockTransport(refuse),
         breaker=CircuitBreaker("report-agent", failure_threshold=2),
+        signer=A2ASigner(A2A_KEY),
     )
-    request = ReportRequest(request="steps", data=[DataPoint(label="2026-10-01", value=1.0)])
+    request = ReportRequest(
+        schema_version=SCHEMA_VERSION, request="steps", data=[DataPoint(label="2026-10-01", value=1.0)]
+    )
     for _ in range(2):
         assert '"unavailable"' in await service.generate(request)
     seen = requests

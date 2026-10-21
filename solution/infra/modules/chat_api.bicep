@@ -19,8 +19,13 @@ param modelName string
 param cosmosEndpoint string
 param appInsightsConnectionString string
 param appConfigEndpoint string
+@secure()
+@description('ASI07: Ed25519 A2A signing key (base64 raw), held only by this app as a Container Apps secret.')
+param a2aSigningKey string
 
-param sidecarImage string = 'mcr.microsoft.com/entra-sdk/auth-sidecar:1.0.0-azurelinux3.0-distroless'
+// WI-10: pinned by digest (1.1.2-azurelinux3.0-distroless, multi-arch index; amd64 only today). Dependabot's docker
+// ecosystem does not see Bicep, so bump this by hand: `podman manifest inspect` the new tag and copy its digest.
+param sidecarImage string = 'mcr.microsoft.com/entra-sdk/auth-sidecar@sha256:73a8763100c93c3da1a3ed1ba3af2c6122c0517687354dceded30537a1aee97f'
 
 var name = 'chat-api'
 
@@ -48,6 +53,7 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
         allowInsecure: false
       }
       registries: [{ server: registryServer, identity: identityId }]
+      secrets: [{ name: 'a2a-signing-key', value: a2aSigningKey }]
     }
     template: {
       // azd deploy replaces the first container's image, so the app container must stay first.
@@ -76,6 +82,8 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsightsConnectionString }
             // ASI10: kill switch in App Configuration, read with the managed identity on every run (10 s cache).
             { name: 'APP_CONFIG_ENDPOINT', value: appConfigEndpoint }
+            // ASI07: signs every A2A request to the report agent; without it no report request is sent.
+            { name: 'A2A_SIGNING_KEY', secretRef: 'a2a-signing-key' }
           ]
         }
         {
@@ -103,7 +111,7 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'DownstreamApis__ReportApi__Scopes__0', value: 'api://${reportApiAppId}/.default' }
             { name: 'DownstreamApis__ReportApi__RequestAppToken', value: 'true' }
             // Newer sidecar builds ignore AgentIdentity on the unauthenticated route unless this is set; only the
-            // chat-api container shares this loopback.
+            // chat-api container shares this loopback. WI-22: still needed in 1.1.2 (upstream defaults it to false).
             { name: 'Sidecar__AllowOverrides__GetAuthorizationHeaderUnauthenticated', value: 'true' }
             { name: 'Logging__LogLevel__Default', value: 'Warning' }
             { name: 'Logging__LogLevel__Microsoft.Identity.Web', value: 'Information' }

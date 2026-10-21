@@ -24,7 +24,7 @@ Deliver the sample as seven vertical slices. Each slice extends the starter and 
 | S2    | ASI01, ASI02, ASI04 runtime controls                              | Starter, solution              | `azd deploy`        | `s2-tools`        |
 | S3    | Report agent, runner, output guard (ASI05, ASI09, ASI07 baseline) | Starter, solution              | `azd up`            | `s3-reports`      |
 | S4    | ASI06, ASI08, ASI10                                               | Starter, solution              | `azd up`            | `s4-operations`   |
-| S5    | Signed A2A (ASI07), CI and supply chain (ASI04)                   | Starter, solution              | `azd deploy`        | `s5-supply-chain` |
+| S5    | Signed A2A (ASI07), CI and supply chain (ASI04)                   | Starter, solution              | `azd up`            | `s5-supply-chain` |
 | S6    | Runbook, full validation, rehearsal                               | All                            | All                 | `s6-talk-ready`   |
 
 Every slice ends with the same checkpoint:

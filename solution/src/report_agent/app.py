@@ -1,9 +1,10 @@
 """Report agent: an A2A server with one skill, generate_report.
 
-ASI07 baseline: every A2A request needs an app-only Entra token for the report API
-(aud = REPORT_API_APP_ID, role Report.Generate, azp = CHAT_AGENT_APP_ID) and a payload that matches
-schemas.ReportRequest. ASI05: generated code passes the static check and runs only in the isolated
-chart runner. ASI09: the reviewer fails closed. A denied report stores no chart.
+ASI07: every A2A request needs an app-only Entra token for the report API (aud = REPORT_API_APP_ID, role
+Report.Generate, azp = CHAT_AGENT_APP_ID), then a fresh, single-use Ed25519 signature from the chat agent over
+the exact body (a2a_security.py), and a payload that matches the versioned schemas.ReportRequest. ASI05:
+generated code passes the static check and runs only in the isolated chart runner. ASI09: the reviewer fails
+closed. A denied report stores no chart.
 """
 
 import logging
@@ -28,6 +29,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 from auth_common import AuthError, JwtValidator, bearer_from_header, issuer_for_mode
 from report_agent import static_check
+from report_agent.a2a_security import PUBLIC_PATHS, RequireSignedRequest, SignatureVerifier, verifier_from_env
 from report_agent.executor import ChartResult, ChartRunner, RunnerError
 from report_agent.reviewer import Verdict, review
 from report_agent.schemas import Report, ReportRequest, agent_card
@@ -35,7 +37,6 @@ from report_agent.schemas import Report, ReportRequest, agent_card
 log = logging.getLogger("report_agent")
 
 REQUIRED_ROLE = "Report.Generate"
-PUBLIC_PATHS = frozenset({"/healthz"})
 
 
 @dataclass
@@ -128,7 +129,7 @@ async def healthz(_: Request) -> JSONResponse:
     return JSONResponse({"status": "ok", "canary_present": bool(os.environ.get("REPORT_AGENT_CANARY"))})
 
 
-def create_app(pipeline: Pipeline, validator: JwtValidator) -> ASGIApp:
+def create_app(pipeline: Pipeline, validator: JwtValidator, verifier: SignatureVerifier) -> ASGIApp:
     card = agent_card(os.environ.get("REPORT_AGENT_URL", "http://report-agent:8002/"))
     handler = DefaultRequestHandler(
         agent_executor=ReportExecutor(pipeline), task_store=InMemoryTaskStore(), agent_card=card
@@ -140,7 +141,8 @@ def create_app(pipeline: Pipeline, validator: JwtValidator) -> ASGIApp:
             *create_jsonrpc_routes(handler, "/"),
         ]
     )
-    return RequireCaller(app, validator)
+    # ASI07: who is calling (token) first, then whether this exact request is genuine, fresh, and new.
+    return RequireCaller(RequireSignedRequest(app, verifier), validator)
 
 
 def build_pipeline() -> Pipeline:
@@ -162,7 +164,7 @@ def build_pipeline() -> Pipeline:
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
     logging.getLogger("azure").setLevel(logging.WARNING)
-    app = create_app(build_pipeline(), build_validator())
+    app = create_app(build_pipeline(), build_validator(), verifier_from_env())
     uvicorn.run(app, host=os.environ.get("HOST", "0.0.0.0"), port=int(os.environ.get("PORT", "8002")))
 
 

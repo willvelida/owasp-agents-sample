@@ -1,0 +1,146 @@
+# ASI04 (S5): supply-chain evidence on every push and pull request. Every action is pinned by full commit SHA
+# (the comment is the release it came from; Dependabot bumps both). Read-only token, no pull_request_target, and
+# no Azure credentials: the stack job runs in offline identity mode and its red-team step is model-free (ASI07).
+name: ci
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: lock, lint, test (${{ matrix.project }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [starter, solution, client, redteam]
+    defaults:
+      run:
+        working-directory: ${{ matrix.project }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: ${{ matrix.project }}/uv.lock
+      - name: uv.lock matches pyproject.toml
+        run: uv lock --check
+      - name: Install exactly what uv.lock pins
+        run: uv sync --locked
+      - name: ruff check
+        run: uv run --locked ruff check
+      - name: ruff format --check
+        run: uv run --locked ruff format --check
+      - name: pytest
+        if: hashFiles(format('{0}/tests/**/*.py', matrix.project)) != ''
+        run: uv run --locked pytest -q
+
+  sbom:
+    name: SBOM (${{ matrix.project }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [starter, solution, client, redteam]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          path: ${{ matrix.project }}
+          format: spdx-json
+          artifact-name: sbom-${{ matrix.project }}.spdx.json
+          # Submitting to the dependency graph needs contents: write; the artefact is the evidence here.
+          dependency-snapshot: false
+
+  infra-guard:
+    name: no stage-only identity in Azure
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # ADR-0018: the local issuer is a stage-only simulator. Nothing deployed to Azure may reference it.
+      - name: local_issuer is absent from infra/ and azure.yaml
+        run: |
+          if grep -rniE 'local[_-]issuer' solution/infra solution/azure.yaml; then
+            echo "::error::local_issuer is referenced by Azure infrastructure"
+            exit 1
+          fi
+          echo "no local_issuer reference in solution/infra or solution/azure.yaml"
+
+  stack:
+    name: offline stack (mcp-scan, ASI07 red team)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      # Podman's compose wrapper with Docker Compose v2 (preinstalled on the runner) as the provider.
+      PODMAN_COMPOSE_PROVIDER: /usr/libexec/docker/cli-plugins/docker-compose
+      PODMAN_COMPOSE_WARNING_LOGS: "false"
+      IDENTITY_MODE: local
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: redteam/uv.lock
+      - name: Podman socket for the Compose provider
+        run: |
+          systemctl --user start podman.socket
+          podman version
+          "$PODMAN_COMPOSE_PROVIDER" version
+      - name: Offline .env (stage-only IDs, no Azure)
+        working-directory: solution
+        run: |
+          cp .env.example .env
+          for key in TENANT_ID BLUEPRINT_APP_ID CHAT_AGENT_APP_ID HEALTH_MCP_APP_ID REPORT_API_APP_ID CLI_APP_ID ALICE_OID BOB_OID; do
+            sed -i "s|^${key}=.*|${key}=$(uuidgen)|" .env
+          done
+          sed -i 's|^IDENTITY_MODE=.*|IDENTITY_MODE=local|' .env
+          sed -i 's|^FOUNDRY_PROJECT_ENDPOINT=.*|FOUNDRY_PROJECT_ENDPOINT=https://ci.invalid/api/projects/ci|' .env
+      # The Entra sidecar is not started (no Entra in CI). The images build for amd64 here, arm64 on a Mac.
+      - name: Build and start (offline profile)
+        working-directory: solution
+        run: podman compose --profile offline up -d --build --wait --wait-timeout 600 chat-api local-issuer
+      - name: mcp-scan against health-mcp (AGT)
+        working-directory: solution
+        run: podman exec -i biotrackr-solution-chat-api-1 python - < scripts/ci_mcp_scan.py
+      - name: Red team, ASI07 (model-free, deterministic)
+        working-directory: redteam
+        run: uv run --locked python -m redteam.run --target solution-offline --risk ASI07
+      - name: Compose logs
+        if: failure()
+        working-directory: solution
+        run: |
+          podman ps -a --format '{{.Names}}\t{{.Status}}'
+          for c in $(podman ps -a --format '{{.Names}}'); do
+            echo "== $c health"; podman inspect --format '{{json .State.Health}}' "$c" | head -c 1500; echo
+          done
+          podman exec biotrackr-solution-chart-runner-1 ls -la /sockets/chart || true
+          podman exec biotrackr-solution-chart-runner-1 id || true
+          podman volume inspect biotrackr-solution_chart-socket || true
+          podman compose --profile offline logs --no-color --tail 200
+      - name: Stop
+        if: always()
+        working-directory: solution
+        run: podman compose --profile offline down --volumes

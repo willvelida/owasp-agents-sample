@@ -151,7 +151,7 @@ flowchart TD
 
 ## Report generation (ASI05, ASI07, ASI09)
 
-Generated chart code never runs in the report agent process ([ADR-0016](adr/0016-isolated-chart-runner.md)). From `s3-reports`, the A2A request is typed and carries an app-only `Report.Generate` token from the chat agent identity (the sidecar's autonomous route); message signing with nonce and timestamp arrives in S5. Every chat reply also passes the fail-closed output guard ([ADR-0021](adr/0021-output-policy-for-clinical-advice.md)), and an approval resume may only approve or reject, never edit the arguments.
+Generated chart code never runs in the report agent process ([ADR-0016](adr/0016-isolated-chart-runner.md)). From `s3-reports`, the A2A request is typed and carries an app-only `Report.Generate` token from the chat agent identity (the sidecar's autonomous route). From `s5-supply-chain`, every request also carries a single-use Ed25519 signature from chat-api over the method, path, body hash, nonce, signing time, and schema version; the report agent checks the token first, then the signature (60 s window, in-process replay cache), then the versioned schema. The private key is held by chat-api only (a Compose volume locally, a Container Apps secret on Azure) and the report agent holds only the public key. Every chat reply also passes the fail-closed output guard ([ADR-0021](adr/0021-output-policy-for-clinical-advice.md)), and an approval resume may only approve or reject, never edit the arguments.
 
 ```mermaid
 sequenceDiagram
@@ -234,10 +234,10 @@ flowchart LR
 | ASI01 | Prompt inline, poisoned notes reach the model       | Hash-pinned tiered prompt, input and tool-result screening, notes withheld | Yes  |
 | ASI02 | All tools incl. delete, unbounded paging, no budget | Allowlist, deny `*delete*`, argument validation, atomic session budget     | Yes  |
 | ASI03 | Model chooses `user_id`, no auth, API keys          | Entra Agent ID OBO, `oid`-scoped queries, `azp` checks, managed identity   | Yes  |
-| ASI04 | Unpinned ranges, overridable tool descriptions      | Hash-locked dependencies, MCP descriptor pinning, Dependabot, CodeQL, SBOM | No   |
+| ASI04 | Unpinned ranges, overridable tool descriptions      | Hash-locked dependencies, MCP descriptor pinning, digest-pinned images, Dependabot, CodeQL, SBOM, `mcp-scan` | No   |
 | ASI05 | `exec()` in the report agent                        | AST check plus isolated runner with no network or secrets                  | Yes  |
 | ASI06 | Unbounded history, sessions not bound to users      | History caps, TTL, per-user partitions, MemoryGuard                        | No   |
-| ASI07 | Unauthenticated untyped A2A                         | Agent ID token, signed messages with nonce and timestamp, typed schemas    | No   |
+| ASI07 | Unauthenticated untyped A2A                         | Agent ID token, single-use Ed25519 signatures with nonce, timestamp, and body hash, versioned typed schemas | No   |
 | ASI08 | No timeouts, outage hangs the agent                 | Timeouts, bounded retries, circuit breaker, graceful degradation           | No   |
 | ASI09 | Medical advice allowed, fail-open reviewer          | Output classifier, fail-closed reviewer, approval for reports, disclaimers | Yes  |
 | ASI10 | No audit, no kill switch, sensitive telemetry       | Hash-chained audit, rogue detection, kill switch, OTel sensitive data off  | No   |
@@ -253,7 +253,7 @@ The architecture is built up in vertical slices. Each one ends in a git tag that
 | `s2-tools`        | `delete_records`, rug-pull descriptions | Governance policies, input, tool, and tool-result guards | None (`azd deploy`)                                                   |
 | `s3-reports`      | report-agent with `exec()`              | report-agent, chart-runner, output guard, approvals      | report-agent app, Dynamic Sessions pool                               |
 | `s4-operations`   | No change                               | Memory guard, resilience, kill switch, audit, rogue detection | App Configuration, `chat_history` and `audit` containers         |
-| `s5-supply-chain` | No change                               | Signed A2A messages, CI workflows                        | None (`azd deploy`)                                                   |
+| `s5-supply-chain` | No change                               | Signed A2A messages, `a2a-keys` service, CI workflows    | None (`azd up` for the new signing-key parameters)                    |
 | `s6-talk-ready`   | No change                               | Runbook                                                  | None                                                                  |
 
 ## Related documents
