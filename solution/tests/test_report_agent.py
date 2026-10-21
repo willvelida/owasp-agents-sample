@@ -11,18 +11,26 @@ import time
 import httpx
 import pytest
 from conftest import ENV, StaticJwks
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from starlette.testclient import TestClient
 
 from auth_common import IssuerConfig, JwtValidator
 from chat_api.auth import current_principal, principal_from_claims
 from chat_api.tools_report import ReportService
+from report_agent.a2a_security import A2ASigner, SignatureVerifier
 from report_agent.app import Pipeline, create_app
 from report_agent.executor import PNG_MAGIC, ChartResult, RunnerError
 from report_agent.reviewer import Verdict, parse_verdict, review
-from report_agent.schemas import ReportRequest
+from report_agent.schemas import SCHEMA_VERSION, ReportRequest
 
 PNG = PNG_MAGIC + b"tiny"
-REQUEST = {"request": "bar chart of my steps", "data": [{"label": "2026-10-13", "value": 7939}]}
+REQUEST = {
+    "schema_version": SCHEMA_VERSION,
+    "request": "bar chart of my steps",
+    "data": [{"label": "2026-10-13", "value": 7939}],
+}
+# One A2A key pair for the round-trip tests below (test_a2a_security.py covers signing itself).
+A2A_KEY = Ed25519PrivateKey.generate()
 CHART_CODE = (
     'plt.bar([p["label"] for p in data], [p["value"] for p in data])\nplt.title("Steps")\nplt.savefig("chart.png")'
 )
@@ -91,8 +99,10 @@ async def test_approved_report_carries_chart():
         {"request": "x", "data": [{"label": "<script>", "value": 1}]},
         {"request": "x", "data": [{"label": "a", "value": float("nan")}]},
         {"request": "x" * 501, "data": REQUEST["data"]},
+        {k: v for k, v in REQUEST.items() if k != "schema_version"},
+        {**REQUEST, "schema_version": "biotrackr.report/v0"},
     ],
-    ids=["missing", "no-data", "extra-field", "bad-label", "nan", "long-request"],
+    ids=["missing", "no-data", "extra-field", "bad-label", "nan", "long-request", "unversioned", "old-version"],
 )
 async def test_untyped_payload_is_denied_before_generation(payload):
     spies = Spies()
@@ -199,7 +209,7 @@ def test_parse_verdict_only_accepts_a_boolean():
 @pytest.fixture
 def report_app(sim):
     spies = Spies()
-    app = create_app(spies.pipeline(), report_validator(sim))
+    app = create_app(spies.pipeline(), report_validator(sim), SignatureVerifier([A2A_KEY.public_key()]))
     return spies, app
 
 
@@ -288,7 +298,9 @@ def as_user(name: str) -> None:
 
 async def test_report_service_round_trip_and_ownership(report_app, sim):
     spies, app = report_app
-    service = ReportService(SimTokens(sim), "http://report-agent/", transport=httpx.ASGITransport(app=app))
+    service = ReportService(
+        SimTokens(sim), "http://report-agent/", transport=httpx.ASGITransport(app=app), signer=A2ASigner(A2A_KEY)
+    )
     as_user("alice")
     result = json.loads(await service.generate(ReportRequest.model_validate(REQUEST)))
     assert result["status"] == "approved" and result["chart_png_bytes"] > 0
@@ -302,7 +314,12 @@ async def test_report_service_round_trip_and_ownership(report_app, sim):
 
 async def test_report_service_fails_closed_without_token(report_app, sim):
     spies, app = report_app
-    service = ReportService(SimTokens(sim, fail=True), "http://report-agent/", transport=httpx.ASGITransport(app=app))
+    service = ReportService(
+        SimTokens(sim, fail=True),
+        "http://report-agent/",
+        transport=httpx.ASGITransport(app=app),
+        signer=A2ASigner(A2A_KEY),
+    )
     as_user("alice")
     result = json.loads(await service.generate(ReportRequest.model_validate(REQUEST)))
     assert result["status"] == "unavailable"
@@ -318,9 +335,13 @@ async def test_report_service_returns_pending_when_slow(sim):
 
     spies = Spies()
     pipeline = Pipeline(generate=slow_generate, runner=spies.runner, reviewer=spies.review)
-    app = create_app(pipeline, report_validator(sim))
+    app = create_app(pipeline, report_validator(sim), SignatureVerifier([A2A_KEY.public_key()]))
     service = ReportService(
-        SimTokens(sim), "http://report-agent/", transport=httpx.ASGITransport(app=app), wait_seconds=0.2
+        SimTokens(sim),
+        "http://report-agent/",
+        transport=httpx.ASGITransport(app=app),
+        wait_seconds=0.2,
+        signer=A2ASigner(A2A_KEY),
     )
     as_user("alice")
     started = time.monotonic()

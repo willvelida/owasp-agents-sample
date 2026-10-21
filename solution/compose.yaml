@@ -51,6 +51,25 @@ services:
         condition: service_healthy
     restart: "no"
 
+  # ASI07: one-shot A2A key generation. The private key goes to a volume only chat-api mounts; the public key to
+  # one only report-agent mounts. The key is created once and kept across restarts (delete the volume to rotate).
+  a2a-keys:
+    <<: *app
+    command:
+      - python
+      - -m
+      - report_agent.a2a_security
+      - keygen
+      - --private
+      - /keys/signing/signing.key
+      - --public
+      - /keys/verify/verify.pub
+    volumes:
+      - a2a-signing:/keys/signing
+      - a2a-verify:/keys/verify
+    network_mode: none
+    restart: "no"
+
   health-mcp:
     <<: *app
     command: ["python", "-m", "health_mcp"]
@@ -87,12 +106,15 @@ services:
       SIDECAR_URL: http://localhost:5000
       # ASI10: kill switch. Set AGENT_KILL_SWITCH=on, then recreate chat-api and its sidecar (solution README, Operations).
       AGENT_KILL_SWITCH: ${AGENT_KILL_SWITCH:-off}
+      # ASI07: Ed25519 key that signs every A2A request (report_agent/a2a_security.py).
+      A2A_SIGNING_KEY_FILE: /run/a2a/signing/signing.key
     ports:
       - "127.0.0.1:8000:8000"
     volumes:
       # ADR-0022: the developer's az login, cached by the az-login service. Read-write because az
       # refreshes its MSAL cache on each token request. Dev profile only, never in an Azure image.
       - azcli-cache:/home/app/.azure
+      - a2a-signing:/run/a2a/signing:ro
     networks: [app, identity]
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz/liveness')"]
@@ -104,8 +126,11 @@ services:
         condition: service_healthy
       report-agent:
         condition: service_healthy
+      a2a-keys:
+        condition: service_completed_successfully
 
-  # ASI07 baseline: A2A only with an app-only token for the report API from the chat agent identity.
+  # ASI07: A2A only with an app-only token for the report API from the chat agent identity, plus a fresh,
+  # single-use signature from chat-api over the exact body (public key only here).
   # ASI05: never runs generated code itself; it sends checked code to chart-runner over a Unix socket.
   # Not published to the host; the red-team oracle goes through chat-api's authenticated diagnostics route.
   report-agent:
@@ -115,11 +140,13 @@ services:
       <<: *app-env
       REPORT_AGENT_URL: http://report-agent:8002/
       CHART_RUNNER_SOCKET: /sockets/chart/runner.sock
+      A2A_VERIFY_KEYS_FILE: /run/a2a/verify/verify.pub
       # ASI05: the same stand-in secret as the starter, so a blocked attack proves the control, not a missing secret.
       REPORT_AGENT_CANARY: CANARY-ENV-R5X
     volumes:
       - azcli-cache:/home/app/.azure
       - chart-socket:/sockets/chart
+      - a2a-verify:/run/a2a/verify:ro
     networks: [app, identity]
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/healthz')"]
@@ -129,6 +156,8 @@ services:
     depends_on:
       chart-runner:
         condition: service_healthy
+      a2a-keys:
+        condition: service_completed_successfully
 
   # ASI05: isolated chart runner. Its own minimal image (chart_runner.Containerfile), no network at all, read-only,
   # non-root (UID 10001, same as report-agent so the socket permissions match), no capabilities, process,
@@ -237,5 +266,12 @@ volumes:
   azcli-cache: {}
   # Unix socket between report-agent and chart-runner, owned by UID 10001 (OQ-13).
   chart-socket:
+    driver_opts:
+      o: "uid=10001,gid=10001"
+  # ASI07: A2A signing key (chat-api only) and its public key (report-agent only), written by a2a-keys.
+  a2a-signing:
+    driver_opts:
+      o: "uid=10001,gid=10001"
+  a2a-verify:
     driver_opts:
       o: "uid=10001,gid=10001"

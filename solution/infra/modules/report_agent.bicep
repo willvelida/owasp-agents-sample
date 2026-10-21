@@ -1,5 +1,6 @@
 // Report agent: internal ingress only. A2A calls need an app-only token for the report API from the chat agent
-// identity (ASI07 baseline). Generated chart code runs only in the Dynamic Sessions pool (ASI05).
+// identity, plus a fresh Ed25519 signature from the chat agent over the exact body (ASI07). Generated chart code
+// runs only in the Dynamic Sessions pool (ASI05).
 param location string
 param tags object
 param environmentId string
@@ -18,6 +19,8 @@ param appInsightsConnectionString string
 @secure()
 @description('ASI05 red-team canary: a stand-in secret held only by this app, as a Container Apps secret.')
 param canary string
+@description('ASI07: the chat agent\'s public A2A key (base64 raw); every request must carry its signature.')
+param a2aVerifyKey string
 
 var name = 'report-agent'
 var fqdn = '${name}.internal.${environmentDomain}'
@@ -68,9 +71,11 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'AZURE_CLIENT_ID', value: reportIdentityClientId }
             { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsightsConnectionString }
             { name: 'REPORT_AGENT_CANARY', secretRef: 'report-agent-canary' }
+            { name: 'A2A_VERIFY_KEYS', value: a2aVerifyKey }
           ]
         }
       ]
+      // One replica: the A2A replay cache, like the task store, is in-process (WI-21).
       scale: { minReplicas: 1, maxReplicas: 1 }
     }
   }

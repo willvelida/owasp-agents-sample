@@ -1,10 +1,16 @@
-"""Typed A2A payloads between the chat agent and the report agent (ASI07 baseline; S5 adds signing)."""
+"""Typed, versioned A2A payloads between the chat agent and the report agent (ASI07).
+
+Requests and reports carry `schema_version`; the report agent rejects any other version, and the signature
+(a2a_security.py) covers the same version, so a payload cannot be reinterpreted under another schema.
+"""
 
 from typing import Literal
 
 from a2a.types import AgentCapabilities, AgentCard, AgentInterface, AgentSkill
 from pydantic import BaseModel, ConfigDict, Field
 
+SCHEMA_VERSION = "biotrackr.report/v1"
+SchemaVersion = Literal["biotrackr.report/v1"]
 MAX_POINTS = 62
 LABEL_PATTERN = r"^[A-Za-z0-9 .:/_-]{1,32}$"
 
@@ -19,6 +25,8 @@ class DataPoint(BaseModel):
 class ReportRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    # ASI07: required, no default, so an unversioned payload is rejected.
+    schema_version: SchemaVersion
     request: str = Field(min_length=1, max_length=500)
     data: list[DataPoint] = Field(min_length=1, max_length=MAX_POINTS)
 
@@ -29,6 +37,7 @@ RejectedBy = Literal["validation", "generator", "static_check", "runner", "revie
 class Report(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    schema_version: SchemaVersion = SCHEMA_VERSION
     report_id: str
     status: Literal["approved", "denied"]
     rejected_by: RejectedBy | None = None

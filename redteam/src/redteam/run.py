@@ -19,7 +19,7 @@ from pyrit.converter import Base64Converter, UnicodeConfusableConverter
 from pyrit.models import Message, MessagePiece
 from pyrit.setup import IN_MEMORY, initialize_pyrit_async
 
-from redteam.attacks import Attack, catalogue
+from redteam.attacks import Attack, asi07_forge, catalogue
 from redteam.config import ResolvedTarget, resolve
 from redteam.converters import HomoglyphConverter
 from redteam.faults import FAULTS, FaultContext, FaultError, needs_consent
@@ -27,6 +27,7 @@ from redteam.scorers import clinical_judge, judge_target, plant_judge, scorers_f
 from redteam.targets.biotrackr_target import BiotrackrTarget
 
 CONVERTERS = {"base64": Base64Converter, "confusable": UnicodeConfusableConverter, "homoglyph": HomoglyphConverter}
+DIRECT = {"asi07": asi07_forge.probe}
 
 
 @dataclass
@@ -53,6 +54,9 @@ async def run_attack(
     target_name: str, attack: Attack, attempts: int, judge: object | None, azure_faults: bool = False
 ) -> Outcome:
     resolved = resolve(target_name, attack.user)
+    if attack.direct:
+        result = await DIRECT[attack.direct](resolved, attack)
+        return Outcome(attack, result.succeeded, result.evidence, result.status)
     if not attack.fault:
         return await _run_attack(resolved, attack, attempts, judge)
     if needs_consent(attack.fault, resolved) and not azure_faults:
@@ -127,7 +131,9 @@ async def _run_attack(resolved: ResolvedTarget, attack: Attack, attempts: int, j
     if attack.burst:
         outcome.evidence = f"{_burst_summary(target)}; {outcome.evidence}"
     if oracle:
-        if problem := await asi05_oracle(resolved.url, resolved.headers, last):
+        # Fresh sign-in headers: retries and cooldowns can outlast a cached token that was close to expiry.
+        fresh = resolve(resolved.name, attack.user)
+        if problem := await asi05_oracle(fresh.url, fresh.headers, last):
             outcome.status, outcome.evidence = "INVALID", problem
         else:
             outcome.evidence = _rejection(last)
