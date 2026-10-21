@@ -47,7 +47,7 @@ services:
     ports:
       - "127.0.0.1:8001:8001"
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/healthz')"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8001/healthz')\""]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -65,7 +65,7 @@ services:
     ports:
       - "127.0.0.1:8000:8000"
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz/liveness')"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz/liveness')\""]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -87,7 +87,7 @@ services:
     ports:
       - "127.0.0.1:8002:8002"
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/healthz')"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8002/healthz')\""]
       interval: 5s
       timeout: 3s
       retries: 20

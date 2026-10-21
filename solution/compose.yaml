@@ -3,6 +3,7 @@ name: biotrackr-solution
 # Entra mode (default):  podman compose up --build -d
 # Offline mode:          $env:IDENTITY_MODE = "local"; podman compose --profile offline up --build -d
 # One-time az login:     podman compose --profile login run --rm az-login
+# Healthchecks use CMD-SHELL: Podman 4.9's Docker-compatible API splits exec-form arguments on spaces.
 
 x-app: &app
   image: localhost/biotrackr-solution:dev
@@ -88,7 +89,7 @@ services:
       - "127.0.0.1:8001:8001"
     networks: [app, identity]
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/healthz')"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8001/healthz')\""]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -117,7 +118,7 @@ services:
       - a2a-signing:/run/a2a/signing:ro
     networks: [app, identity]
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz/liveness')"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz/liveness')\""]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -149,7 +150,7 @@ services:
       - a2a-verify:/run/a2a/verify:ro
     networks: [app, identity]
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/healthz')"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8002/healthz')\""]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -183,7 +184,7 @@ services:
     volumes:
       - chart-socket:/sockets/chart
     healthcheck:
-      test: ["CMD", "python", "-c", "import socket; s = socket.socket(socket.AF_UNIX); s.connect('/sockets/chart/runner.sock')"]
+      test: ["CMD-SHELL", "python -c \"import socket; s = socket.socket(socket.AF_UNIX); s.connect('/sockets/chart/runner.sock')\""]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -244,7 +245,7 @@ services:
       - "127.0.0.1:8100:8100"
     networks: [identity]
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8100/healthz')"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8100/healthz')\""]
       interval: 5s
       timeout: 3s
       retries: 20
