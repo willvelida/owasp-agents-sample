@@ -131,7 +131,15 @@ jobs:
       - name: Compose logs
         if: failure()
         working-directory: solution
-        run: podman compose --profile offline logs --no-color --tail 200
+        run: |
+          podman ps -a --format '{{.Names}}\t{{.Status}}'
+          for c in $(podman ps -a --format '{{.Names}}'); do
+            echo "== $c health"; podman inspect --format '{{json .State.Health}}' "$c" | head -c 1500; echo
+          done
+          podman exec biotrackr-solution-chart-runner-1 ls -la /sockets/chart || true
+          podman exec biotrackr-solution-chart-runner-1 id || true
+          podman volume inspect biotrackr-solution_chart-socket || true
+          podman compose --profile offline logs --no-color --tail 200
       - name: Stop
         if: always()
         working-directory: solution
