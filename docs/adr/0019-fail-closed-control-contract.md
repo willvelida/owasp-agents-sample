@@ -80,7 +80,7 @@ The S3 rows are implemented and each has a spy-based test:
 
 The S4 rows are implemented and each has a spy-based test:
 
-* Kill switch on: every run is refused before input screening, context providers, or the model (the model client spy records zero calls, no tool runs, nothing is stored), streamed, non-streamed, and through the AG-UI endpoint; a switch flipped mid-run aborts the next tool call with `MiddlewareFailure` (`tests/test_kill_switch.py`). On Azure an unreadable App Configuration store, a missing key, or an unknown value counts as engaged once the 10 second cache expires.
+* Kill switch on: every run is refused before input screening, context providers, or the model (the model client spy records zero calls, no tool runs, nothing is stored), streamed, non-streamed, and through the AG-UI endpoint; a switch flipped mid-run aborts the next tool call with `MiddlewareFailure` (`tests/test_kill_switch.py`). On Azure an App Configuration store that is still unreadable after one retry, a missing key, or an unknown value counts as engaged once the 10 second cache expires.
 * Rogue detection: a quarantined user's tool calls abort their batch with `MiddlewareFailure` and their new runs are refused before the model; AGT's per-user detector denies with `MiddlewareTermination`, which is converted (`tests/test_rogue_guard.py`).
 * Memory: a turn that AGT MemoryGuard flags is never written; a stored turn that fails its integrity hash or is flagged later is not loaded (`tests/test_memory_guard.py`).
 * Audit: refused runs are recorded, and verification reports edited entries, broken links, and missing sequence numbers (`tests/test_audit.py`).

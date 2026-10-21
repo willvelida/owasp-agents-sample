@@ -11,6 +11,11 @@ updates:
     groups:
       python-minor-and-patch:
         update-types: ["minor", "patch"]
+    # agent-framework 1.22.0 declares mcp<2; the 2.x client API breaks MAF's MCP tool. The starter has no tests, so
+    # CI cannot catch this there. Remove once MAF supports mcp 2.
+    ignore:
+      - dependency-name: mcp
+        versions: [">=2"]
     open-pull-requests-limit: 10
 
   - package-ecosystem: github-actions

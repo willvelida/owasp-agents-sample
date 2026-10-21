@@ -18,6 +18,7 @@ The starter is a "naive but plausible" Biotrackr chat agent ([ADR-0004](../docs/
 | `seed`       | `seed`       | none             | Loads [data/seed](../data/seed/README.md), then exits |
 | `health-mcp` | `health_mcp` | 8001             | MCP server (streamable HTTP) with 13 health tools     |
 | `chat-api`   | `chat_api`   | 8000             | MAF agent behind an AG-UI endpoint, plus `/conversations` |
+| `report-agent` | `report_agent` | 8002          | Unauthenticated A2A report generator and in-process executor |
 
 All services share one image built from [Containerfile](Containerfile); each Compose service picks its module with `command: ["python", "-m", "<module>"]`.
 
@@ -75,7 +76,7 @@ The report agent (`report-agent`, A2A on 127.0.0.1:8002) runs a generator, an ex
 
 ## Weakness markers
 
-Every deliberate weakness carries a `# ASI0x (starter): <why>` comment. The table lists the markers present in slice S3.
+Every deliberate weakness carries a `# ASI0x (starter): <why>` comment. The table lists the cumulative markers through slice S5.
 
 | Risk  | Where                                              | Weakness                                                    |
 |-------|----------------------------------------------------|-------------------------------------------------------------|
