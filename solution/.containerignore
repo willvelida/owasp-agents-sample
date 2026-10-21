@@ -9,3 +9,4 @@ tests/
 infra/
 scripts/
 rugpull.env
+ui/

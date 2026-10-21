@@ -12,6 +12,7 @@
     "healthMcpAppId": { "value": "${HEALTH_MCP_APP_ID=}" },
     "cliAppId": { "value": "${CLI_APP_ID=}" },
     "reportApiAppId": { "value": "${REPORT_API_APP_ID=}" },
+    "spaAppId": { "value": "${SPA_APP_ID=}" },
     "chatApiExists": { "value": "${SERVICE_CHAT_API_RESOURCE_EXISTS=false}" },
     "healthMcpExists": { "value": "${SERVICE_HEALTH_MCP_RESOURCE_EXISTS=false}" },
     "reportAgentExists": { "value": "${SERVICE_REPORT_AGENT_RESOURCE_EXISTS=false}" },

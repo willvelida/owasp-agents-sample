@@ -11,6 +11,10 @@ param blueprintAppId string
 param chatAgentAppId string
 param healthMcpAppId string
 param cliAppId string
+@description('Browser client app id; its tokens are accepted next to the CLI\'s.')
+param spaAppId string
+@description('Exact browser origins (comma-separated) allowed by chat-api\'s CORS middleware.')
+param corsAllowedOrigins string
 param healthMcpUrl string
 param reportApiAppId string
 param reportAgentUrl string
@@ -70,6 +74,10 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'CHAT_AGENT_APP_ID', value: chatAgentAppId }
             { name: 'HEALTH_MCP_APP_ID', value: healthMcpAppId }
             { name: 'CLI_APP_ID', value: cliAppId }
+            // ASI03: only these two clients' tokens (azp) are accepted; CORS lets only the chat-ui origin read
+            // responses and never bypasses the bearer check.
+            { name: 'ALLOWED_CLIENT_APP_IDS', value: '${cliAppId},${spaAppId}' }
+            { name: 'CORS_ALLOWED_ORIGINS', value: corsAllowedOrigins }
             { name: 'SIDECAR_URL', value: 'http://localhost:5000' }
             { name: 'MCP_URL', value: '${healthMcpUrl}/mcp' }
             { name: 'REPORT_AGENT_URL', value: '${reportAgentUrl}/' }

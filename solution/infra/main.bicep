@@ -29,6 +29,9 @@ param healthMcpAppId string
 param cliAppId string
 @minLength(36)
 param reportApiAppId string
+@minLength(36)
+@description('Browser client (biotrackr-demo-spa) app id; chat-api accepts its tokens next to the CLI\'s.')
+param spaAppId string
 
 // azd sets these after the first deploy so re-provisioning keeps the deployed images.
 param chatApiExists bool = false
@@ -50,6 +53,8 @@ param modelCapacity int = 100
 
 var tags = { 'azd-env-name': environmentName }
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
+// The chat-ui origin, known before chat-ui exists; chat-api allows only this origin for CORS.
+var chatUiOrigin = 'https://chat-ui.${core.outputs.containerAppsEnvironmentDomain}'
 
 resource rg 'Microsoft.Resources/resourceGroups@2024-03-01' = {
   name: 'rg-${environmentName}'
@@ -159,6 +164,8 @@ module chatApi 'modules/chat_api.bicep' = {
     chatAgentAppId: chatAgentAppId
     healthMcpAppId: healthMcpAppId
     cliAppId: cliAppId
+    spaAppId: spaAppId
+    corsAllowedOrigins: chatUiOrigin
     healthMcpUrl: healthMcp.outputs.url
     reportApiAppId: reportApiAppId
     reportAgentUrl: reportAgent.outputs.url

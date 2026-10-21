@@ -5,14 +5,36 @@ import os
 from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
 from contextlib import asynccontextmanager
 from typing import Annotated, Any
+from urllib.parse import urlsplit
 
 import httpx
 import uvicorn
 from agent_framework.ag_ui import add_agent_framework_fastapi_endpoint
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
 from chat_api.approvals import reject_edited_approvals
 from chat_api.auth import Principal, RequireUser, build_validator, snapshot_scope
+
+
+def cors_allowed_origins(raw: str | None) -> list[str]:
+    """Parses CORS_ALLOWED_ORIGINS into exact origins; raises on a wildcard or anything that is not an origin."""
+    origins = [entry.strip() for entry in (raw or "").split(",") if entry.strip()]
+    for origin in origins:
+        parts = urlsplit(origin)
+        if (
+            origin == "*"
+            or parts.scheme not in ("http", "https")
+            or not parts.hostname
+            or "*" in origin
+            or parts.path
+            or parts.query
+            or parts.fragment
+            or parts.username
+            or parts.password
+        ):
+            raise ValueError(f"CORS_ALLOWED_ORIGINS entry is not an exact scheme://host[:port] origin: {origin!r}")
+    return origins
 
 
 def create_app(
@@ -30,6 +52,20 @@ def create_app(
         await store.close()
 
     app = FastAPI(title="Biotrackr Chat API (solution)", lifespan=lifespan)
+
+    # ASI03: CORS only lets the allowlisted browser origin read responses; it grants nothing. Preflight is
+    # answered inside the middleware before routing, so it never reaches RequireUser or the agent, and every
+    # POST still needs a valid bearer. No credentials (cookies) are allowed. Unset means no CORS at all.
+    origins = cors_allowed_origins(os.environ.get("CORS_ALLOWED_ORIGINS"))
+    if origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=origins,
+            allow_methods=["POST"],
+            allow_headers=["authorization", "content-type"],
+            allow_credentials=False,
+            max_age=600,
+        )
 
     # ASI03: bearer validation runs before the handler, and the snapshot scope binds threads to the oid,
     # so one user's thread id resolves to a different session for anyone else.
