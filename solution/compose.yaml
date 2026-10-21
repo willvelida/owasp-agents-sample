@@ -85,6 +85,8 @@ services:
       MCP_URL: http://health-mcp:8001/mcp
       REPORT_AGENT_URL: http://report-agent:8002/
       SIDECAR_URL: http://localhost:5000
+      # ASI10: kill switch. Set AGENT_KILL_SWITCH=on, then recreate chat-api and its sidecar (solution README, Operations).
+      AGENT_KILL_SWITCH: ${AGENT_KILL_SWITCH:-off}
     ports:
       - "127.0.0.1:8000:8000"
     volumes:

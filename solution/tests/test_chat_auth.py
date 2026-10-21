@@ -43,7 +43,8 @@ class SpyStore:
         self.docs = docs or {}
         self.calls: list[tuple[str, Any]] = []
 
-    async def get(self, session_id):
+    async def get(self, session_id, oid=None):
+        # Ignores the partition on purpose, so the provider's own owner check is what the test exercises.
         self.calls.append(("get", session_id))
         return self.docs.get(session_id)
 

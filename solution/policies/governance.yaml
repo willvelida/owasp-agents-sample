@@ -40,3 +40,18 @@ denied_tools:
   - "*update*"
   - "*write*"
   - "*admin*"
+
+# ASI08: model tokens per conversation (signed-in oid + session id) and per reply.
+max_tokens_per_conversation: 400000
+max_output_tokens: 2000
+
+# ASI10: rogue detection per signed-in user. Each user gets an own AGT RogueAgentDetector (quarantine at
+# this risk level) plus a ceiling on executed tool calls across all of that user's conversations. The ceiling sits
+# above max_tool_calls, so one conversation cannot trip it. A quarantine lasts quarantine_seconds for that user only.
+rogue_detection:
+  burst_limit: 50
+  burst_window_seconds: 120
+  quarantine_seconds: 300
+  quarantine_risk_level: critical
+  frequency_window_seconds: 60
+  frequency_min_windows: 10

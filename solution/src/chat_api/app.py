@@ -2,7 +2,7 @@
 
 import logging
 import os
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
 from contextlib import asynccontextmanager
 from typing import Annotated, Any
 
@@ -15,10 +15,18 @@ from chat_api.approvals import reject_edited_approvals
 from chat_api.auth import Principal, RequireUser, build_validator, snapshot_scope
 
 
-def create_app(agent: Any, store: Any, require_user: RequireUser) -> FastAPI:
+def create_app(
+    agent: Any,
+    store: Any,
+    require_user: RequireUser,
+    *,
+    on_shutdown: Sequence[Callable[[], Awaitable[None]]] = (),
+) -> FastAPI:
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         yield
+        for close in on_shutdown:
+            await close()
         await store.close()
 
     app = FastAPI(title="Biotrackr Chat API (solution)", lifespan=lifespan)
@@ -75,11 +83,17 @@ def build_app() -> FastAPI:
 
     from chat_api.agent import build_agent
     from chat_api.history import CosmosConversationStore, CosmosHistoryProvider
+    from chat_api.middleware.audit import AuditTrail, CosmosAuditSink
+    from chat_api.middleware.memory_guard import MemoryGate
 
-    # ASI10 (starter): prompts, tool arguments, and health data are written into traces.
-    configure_otel_providers(service_name="biotrackr-chat-api", enable_sensitive_data=True)
+    # ASI10: traces carry timings, token counts, and tool names, never prompts, tool arguments, or health data.
+    configure_otel_providers(service_name="biotrackr-chat-api", enable_sensitive_data=False)
     store = CosmosConversationStore()
-    return create_app(build_agent(CosmosHistoryProvider(store)), store, RequireUser(build_validator()))
+    sink = CosmosAuditSink()
+    audit = AuditTrail(sink)
+    history = CosmosHistoryProvider(store, MemoryGate(audit=audit))
+    agent = build_agent(history, audit=audit)
+    return create_app(agent, store, RequireUser(build_validator()), on_shutdown=(agent.user_tools.close, sink.close))
 
 
 def main() -> None:

@@ -4,7 +4,8 @@ ASI09: generate_report needs the user's approval before it runs (approval_mode f
 is capped per conversation by the tool budget. ASI07 baseline: each call carries an app-only token for the
 report API from the Agent ID sidecar (autonomous, no user token), the agent card is a local pinned copy,
 and requests and responses are typed. ASI03: a user can only check reports they generated. ASI08: every
-call is bounded.
+call is bounded (connect 5 s, read 30 s), status polls are retried with jitter, and a circuit breaker fails fast
+while the report agent is down. Submissions are never retried, so a report is never requested twice.
 """
 
 import asyncio
@@ -24,11 +25,11 @@ from pydantic import Field, ValidationError
 
 from chat_api.auth import require_principal
 from chat_api.identity import DownstreamTokenProvider, IdentityError
+from chat_api.middleware.resilience import HTTP_TIMEOUT, CircuitBreaker, CircuitOpenError, is_transient, retry
 from report_agent.schemas import MAX_POINTS, DataPoint, Report, ReportRequest, agent_card
 
 log = logging.getLogger("chat_api.tools_report")
 
-REQUEST_TIMEOUT_SECONDS = 15.0
 WAIT_FOR_REPORT_SECONDS = 75.0
 POLL_INTERVAL_SECONDS = 1.0
 TERMINAL_STATES = {TaskState.TASK_STATE_COMPLETED, TaskState.TASK_STATE_FAILED, TaskState.TASK_STATE_CANCELED}
@@ -83,22 +84,23 @@ class ReportService:
         *,
         wait_seconds: float = WAIT_FOR_REPORT_SECONDS,
         transport: httpx.AsyncBaseTransport | None = None,
+        breaker: CircuitBreaker | None = None,
     ) -> None:
         self.tokens = tokens
         self.card = agent_card(url or os.environ.get("REPORT_AGENT_URL", "http://report-agent:8002/"))
         self.owners = owners or ReportOwners()
         self.wait_seconds = wait_seconds
         self._transport = transport
+        self.breaker = breaker or CircuitBreaker("report-agent")
 
     async def _http(self) -> httpx.AsyncClient:
         header = await self.tokens.report_api_header()
-        return httpx.AsyncClient(
-            headers={"Authorization": header}, timeout=REQUEST_TIMEOUT_SECONDS, transport=self._transport
-        )
+        return httpx.AsyncClient(headers={"Authorization": header}, timeout=HTTP_TIMEOUT, transport=self._transport)
 
     async def generate(self, request: ReportRequest) -> str:
         oid = require_principal().oid
-        try:
+
+        async def submit_and_wait() -> str:
             async with await self._http() as http:
                 client = ClientFactory(ClientConfig(streaming=False, httpx_client=http)).create(self.card)
                 message = new_message([new_data_part(request.model_dump())], role=Role.ROLE_USER)
@@ -115,7 +117,14 @@ class ReportService:
                     if asyncio.get_running_loop().time() >= deadline:
                         return json.dumps({"report_id": task.id, "status": "pending"})
                     await asyncio.sleep(POLL_INTERVAL_SECONDS)
-                    task = await client.get_task(GetTaskRequest(id=task.id))
+                    poll = GetTaskRequest(id=task.id)
+                    task = await retry(lambda poll=poll: client.get_task(poll))
+            return _for_model(report)
+
+        try:
+            return await self.breaker.call(submit_and_wait, counts=is_transient)
+        except CircuitOpenError:
+            return _unavailable("the report service is temporarily unavailable; try again in a minute")
         except IdentityError as exc:
             log.warning("no report API token: %s", exc)
             return _unavailable("the report service could not be authorised")
@@ -125,15 +134,20 @@ class ReportService:
         except Exception as exc:
             log.warning("report request failed: %s", type(exc).__name__)
             return _unavailable("the report service is unavailable")
-        return _for_model(report)
 
     async def status(self, report_id: str) -> str:
         if not await self.owners.owned_by(report_id, require_principal().oid):
             return json.dumps({"report_id": report_id, "status": "not_found"})
-        try:
+
+        async def fetch() -> Report | None:
             async with await self._http() as http:
                 client = ClientFactory(ClientConfig(streaming=False, httpx_client=http)).create(self.card)
-                report = _report_of(await client.get_task(GetTaskRequest(id=report_id)))
+                return _report_of(await retry(lambda: client.get_task(GetTaskRequest(id=report_id))))
+
+        try:
+            report = await self.breaker.call(fetch, counts=is_transient)
+        except CircuitOpenError:
+            return _unavailable("the report service is temporarily unavailable; try again in a minute")
         except IdentityError:
             return _unavailable("the report service could not be authorised")
         except Exception as exc:

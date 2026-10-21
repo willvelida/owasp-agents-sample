@@ -317,6 +317,20 @@ wheels = [
 ]
 
 [[package]]
+name = "azure-appconfiguration"
+version = "1.7.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "azure-core" },
+    { name = "isodate" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d3/9f/f2a9ab639df9f9db2112ded1c6286d1a685f6dadc8b56fc1f1d5faed8c57/azure_appconfiguration-1.7.2.tar.gz", hash = "sha256:cefd75b298b898a8ed9f73048f3f39f4e81059a58cd832d0523787fc1d912a06", size = 120992, upload-time = "2025-10-20T20:26:30.072Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c4/59/c21dfb3ee35fe723c7662b3e468b20532947e73e11248971c45b7554590b/azure_appconfiguration-1.7.2-py3-none-any.whl", hash = "sha256:8cb62acd32efa84ae1e1ce30118ab4b412b3652f3ab6e86f811ec2e48388d083", size = 100202, upload-time = "2025-10-20T20:26:31.261Z" },
+]
+
+[[package]]
 name = "azure-core"
 version = "1.41.0"
 source = { registry = "https://pypi.org/simple" }
@@ -386,6 +400,7 @@ dependencies = [
     { name = "agent-governance-toolkit-cli" },
     { name = "agent-governance-toolkit-core" },
     { name = "aiohttp" },
+    { name = "azure-appconfiguration" },
     { name = "azure-cosmos" },
     { name = "azure-identity" },
     { name = "fastapi" },
@@ -419,6 +434,7 @@ requires-dist = [
     { name = "agent-governance-toolkit-cli", specifier = "==5.0.0" },
     { name = "agent-governance-toolkit-core", specifier = "==5.0.0" },
     { name = "aiohttp", specifier = "==3.14.5" },
+    { name = "azure-appconfiguration", specifier = "==1.7.2" },
     { name = "azure-cosmos", specifier = "==4.17.1" },
     { name = "azure-identity", specifier = "==1.26.0" },
     { name = "fastapi", specifier = "==0.141.1" },

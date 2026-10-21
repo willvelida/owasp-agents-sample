@@ -18,6 +18,7 @@ param foundryProjectEndpoint string
 param modelName string
 param cosmosEndpoint string
 param appInsightsConnectionString string
+param appConfigEndpoint string
 
 param sidecarImage string = 'mcr.microsoft.com/entra-sdk/auth-sidecar:1.0.0-azurelinux3.0-distroless'
 
@@ -73,6 +74,8 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
             // ASI03: managed identity for Foundry and Cosmos DB; no keys anywhere.
             { name: 'AZURE_CLIENT_ID', value: identityClientId }
             { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsightsConnectionString }
+            // ASI10: kill switch in App Configuration, read with the managed identity on every run (10 s cache).
+            { name: 'APP_CONFIG_ENDPOINT', value: appConfigEndpoint }
           ]
         }
         {
@@ -107,7 +110,9 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
           ]
         }
       ]
-      scale: { minReplicas: 1, maxReplicas: 2 }
+      // One replica: the tool and token budgets, rogue-detection quarantines, and circuit breakers are in-process
+      // (DD-35). Scaling out needs them in a shared store first (WI-13).
+      scale: { minReplicas: 1, maxReplicas: 1 }
     }
   }
 }

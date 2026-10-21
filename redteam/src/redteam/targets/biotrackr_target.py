@@ -35,6 +35,8 @@ class BiotrackrTarget(PromptTarget):
         self._timeout = timeout
         self._threads: dict[str, str] = {}
         self.extra_headers: dict[str, str] = {}
+        self.burst_tool_calls = 0
+        self.burst_aborted = 0
         self.max_approvals = max_approvals
 
     def _validate_request(self, *, normalized_conversation: list[Message]) -> None:
@@ -47,6 +49,10 @@ class BiotrackrTarget(PromptTarget):
         thread_id = self._threads.setdefault(request.conversation_id, str(uuid.uuid4()))
         text = await self.run_async(thread_id, request.converted_value)
         return [construct_response_from_request(request=request, response_text_pieces=[text])]
+
+    def thread_for(self, conversation_id: str) -> str:
+        """The AG-UI thread behind a PyRIT conversation, so a later turn lands in the same server-side history."""
+        return self._threads.setdefault(conversation_id, str(uuid.uuid4()))
 
     async def run_async(self, thread_id: str, prompt: str) -> str:
         # The whole run has one deadline: a stalled stream (the starter has no timeouts) cannot block the scorecard.
