@@ -16,6 +16,7 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message
 log = logging.getLogger("seed")
 
 DOMAINS = ("activity", "food", "sleep", "vitals")
+CHAT_HISTORY_TTL_SECONDS = 90 * 24 * 60 * 60
 
 
 def user_oids() -> dict[str, str]:
@@ -44,8 +45,12 @@ def database(client: CosmosClient, endpoint: str) -> DatabaseProxy:
         return client.get_database_client(name)
     db = client.create_database_if_not_exists(name)
     db.create_container_if_not_exists("health", partition_key=PartitionKey(path="/userId"))
-    # ASI06 (starter): no default TTL, so conversations (and anything poisoned in them) live forever.
-    db.create_container_if_not_exists("conversations", partition_key=PartitionKey(path="/sessionId"))
+    # ASI06: conversations live in the caller's own partition and expire 90 days after their last write.
+    db.create_container_if_not_exists(
+        "chat_history", partition_key=PartitionKey(path="/userId"), default_ttl=CHAT_HISTORY_TTL_SECONDS
+    )
+    # ASI10: hash-chained audit trail, one chain per chat-api process.
+    db.create_container_if_not_exists("audit", partition_key=PartitionKey(path="/chainId"))
     return db
 
 

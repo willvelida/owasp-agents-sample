@@ -77,7 +77,7 @@ flowchart LR
         mcp["health-mcp<br/>12 read tools<br/>user from token oid"]
         report["report-agent (A2A)<br/>static check, fail-closed reviewer<br/>signed typed messages"]
         runner["chart-runner<br/>no network, read-only, non-root<br/>Unix socket only"]
-        cosmos[("Cosmos DB emulator<br/>health, conversations, audit")]
+        cosmos[("Cosmos DB emulator<br/>health, chat_history, audit")]
         issuer["local identity simulator<br/>offline profile only"]
     end
 
@@ -133,17 +133,17 @@ Each control sits at a point where it can fail closed ([ADR-0019](adr/0019-fail-
 ```mermaid
 flowchart TD
     req([AG-UI request]) --> auth["JWT validation<br/>ASI03"]
-    auth --> kill["Kill switch<br/>ASI10"]
+    auth --> kill["Kill switch, per-user quarantine, token budget<br/>fixed reply, no model call<br/>ASI10, ASI08"]
     kill --> input["Input guard<br/>AGT prompt injection + blocked patterns<br/>ASI01"]
     input --> memory["History provider + MemoryGuard<br/>caps, TTL, per-user partition<br/>ASI06"]
     memory --> model["Model call<br/>hash-pinned tiered prompt<br/>ASI01, ASI09"]
     model --> toolpolicy["Tool policy<br/>allowlist, deny, args, session budget<br/>ASI02"]
-    toolpolicy --> resilience["Resilience<br/>timeouts, retries, circuit breaker<br/>ASI08"]
+    toolpolicy --> resilience["Resilience<br/>timeouts, retries, circuit breaker, per-user MCP session, degraded reply<br/>ASI08"]
     resilience --> tools["MCP tools (OBO) or report agent (A2A, approval required)<br/>ASI03, ASI07, ASI09"]
     tools --> result["Tool result guard<br/>abort on injection<br/>ASI01"]
     result --> model
     model --> output["Output guard<br/>clinical advice classifier<br/>ASI09"]
-    output --> audit["Audit trail + rogue detection<br/>ASI10"]
+    output --> audit["Hash-chained audit trail + per-user rogue detection<br/>ASI10"]
     audit --> resp([AG-UI response])
 
     startup(["Startup checks<br/>prompt hash, MCP descriptor lock<br/>ASI01, ASI04"]) -.-> model
@@ -252,7 +252,7 @@ The architecture is built up in vertical slices. Each one ends in a git tag that
 | `s1-identity`     | No change                               | JWT validation, AgentID sidecar, OBO, identity simulator | Container Apps, ACR, managed identity, Cosmos DB, Foundry, monitoring |
 | `s2-tools`        | `delete_records`, rug-pull descriptions | Governance policies, input, tool, and tool-result guards | None (`azd deploy`)                                                   |
 | `s3-reports`      | report-agent with `exec()`              | report-agent, chart-runner, output guard, approvals      | report-agent app, Dynamic Sessions pool                               |
-| `s4-operations`   | No change                               | Memory guard, resilience, kill switch, audit             | App Configuration, audit container                                    |
+| `s4-operations`   | No change                               | Memory guard, resilience, kill switch, audit, rogue detection | App Configuration, `chat_history` and `audit` containers         |
 | `s5-supply-chain` | No change                               | Signed A2A messages, CI workflows                        | None (`azd deploy`)                                                   |
 | `s6-talk-ready`   | No change                               | Runbook                                                  | None                                                                  |
 

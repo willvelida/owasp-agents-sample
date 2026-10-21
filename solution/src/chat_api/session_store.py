@@ -1,4 +1,4 @@
-"""Per-conversation tool-call budget (ASI02).
+"""Per-conversation tool-call budget (ASI02) and token budget (ASI08).
 
 The budget is keyed by the signed-in user's oid plus the session id, so one user can never spend or
 reset another user's budget, and a reservation for a whole tool batch is atomic: concurrent requests
@@ -49,3 +49,32 @@ class ToolBudget:
     async def used(self, oid: str, session_id: str, tool: str | None = None) -> int:
         async with self._lock:
             return self._used.get((oid, session_id), Counter())[tool or _TOTAL]
+
+
+class TokenBudget:
+    """Model tokens per conversation (ASI08), keyed like the tool budget and also in-process.
+
+    Accounting happens after each model call, so a run can overshoot by at most one call; the next model call in
+    the run and every later run of the conversation are refused.
+    """
+
+    def __init__(self, limit: int, *, max_sessions: int = 10_000) -> None:
+        if limit < 1:
+            raise ValueError("limit must be at least 1")
+        self.limit = limit
+        self._used: OrderedDict[tuple[str, str], int] = OrderedDict()
+        self._max_sessions = max_sessions
+
+    def add(self, oid: str, session_id: str, tokens: int) -> int:
+        key = (oid, session_id)
+        self._used[key] = self._used.get(key, 0) + max(0, tokens)
+        self._used.move_to_end(key)
+        while len(self._used) > self._max_sessions:
+            self._used.popitem(last=False)
+        return self._used[key]
+
+    def used(self, oid: str, session_id: str) -> int:
+        return self._used.get((oid, session_id), 0)
+
+    def exhausted(self, oid: str, session_id: str) -> bool:
+        return self.used(oid, session_id) >= self.limit

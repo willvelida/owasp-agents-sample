@@ -133,14 +133,28 @@ resource healthContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/con
   }
 }
 
-// ASI06 (starter): no default TTL yet; S4 adds it.
-resource conversationsContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-11-15' = {
+// ASI06: conversations live in the caller's own partition (every read names the oid) and expire 90 days after their
+// last write. Partition keys are immutable, so this replaces the S1 `conversations` container (partition /sessionId).
+resource chatHistoryContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-11-15' = {
   parent: database
-  name: 'conversations'
+  name: 'chat_history'
   properties: {
     resource: {
-      id: 'conversations'
-      partitionKey: { paths: ['/sessionId'], kind: 'Hash' }
+      id: 'chat_history'
+      partitionKey: { paths: ['/userId'], kind: 'Hash' }
+      defaultTtl: 7776000
+    }
+  }
+}
+
+// ASI10: hash-chained audit trail written by chat-api, one chain per process.
+resource auditContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-11-15' = {
+  parent: database
+  name: 'audit'
+  properties: {
+    resource: {
+      id: 'audit'
+      partitionKey: { paths: ['/chainId'], kind: 'Hash' }
     }
   }
 }

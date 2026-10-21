@@ -1,13 +1,13 @@
 ---
 title: Solution (hardened)
 description: Hardened Python port of the Biotrackr chat agent, with a marked, tested control for each OWASP Agentic Top 10 risk, slice by slice
-ms.date: 2026-10-19
+ms.date: 2026-10-20
 ms.topic: how-to
 ---
 
 ## Overview
 
-The solution keeps the [starter](../starter/README.md)'s file names, so `git diff --no-index starter solution` shows every control. Slice S1 (`s1-identity`) fixes ASI03: alice and bob sign in with Entra, the chat agent reaches the health MCP server on their behalf through an Entra Agent ID, and the MCP server returns only the token owner's data. Slice S2 (`s2-tools`) adds tool governance for ASI01, ASI02, and the runtime half of ASI04 (see [Tool governance](#tool-governance-asi01-asi02-asi04)). Slice S3 (`s3-reports`) adds the report agent with an isolated chart runner, an approval gate, a fail-closed reviewer, and an output guard for ASI05, ASI09, and the ASI07 baseline (see [Reports](#reports-asi05-asi07-asi09)). It runs in three ways:
+The solution keeps the [starter](../starter/README.md)'s file names, so `git diff --no-index starter solution` shows every control. Slice S1 (`s1-identity`) fixes ASI03: alice and bob sign in with Entra, the chat agent reaches the health MCP server on their behalf through an Entra Agent ID, and the MCP server returns only the token owner's data. Slice S2 (`s2-tools`) adds tool governance for ASI01, ASI02, and the runtime half of ASI04 (see [Tool governance](#tool-governance-asi01-asi02-asi04)). Slice S3 (`s3-reports`) adds the report agent with an isolated chart runner, an approval gate, a fail-closed reviewer, and an output guard for ASI05, ASI09, and the ASI07 baseline (see [Reports](#reports-asi05-asi07-asi09)). Slice S4 (`s4-operations`) bounds and screens conversation memory, adds timeouts, circuit breakers, and graceful degradation, and gives operators a hash-chained audit trail, per-user rogue detection, and a kill switch for ASI06, ASI08, and ASI10 (see [Operations](#operations-asi06-asi08-asi10)). It runs in three ways:
 
 | Mode           | Identity                                                                 | Model and data                                                |
 |----------------|--------------------------------------------------------------------------|---------------------------------------------------------------|
@@ -50,7 +50,7 @@ The fail-closed contract ([ADR-0019](../docs/adr/0019-fail-closed-control-contra
 |---------|-------|--------------------------------|
 | Input screening | [middleware/input_guard.py](src/chat_api/middleware/input_guard.py) | `MiddlewareFailure` before identity, model, or tool calls. It normalises Unicode, rejects mixed Latin and Cyrillic or Greek words, and screens decoded Base64 runs too |
 | Tool batch policy | [middleware/tool_policy.py](src/chat_api/middleware/tool_policy.py) | A chat middleware checks every tool call the model asks for. One unknown or denied tool, an out-of-policy `page_size`, or a budget breach aborts the whole parallel batch before any call starts |
-| AGT governance stack | `create_governance_middleware` (audit trail, capability guard, rogue detection) | AGT's `MiddlewareTermination` denials are converted to `MiddlewareFailure` by `FailClosed`, because termination lets sibling calls run |
+| AGT governance stack | `create_governance_middleware` (audit trail, capability guard) | AGT's `MiddlewareTermination` denials are converted to `MiddlewareFailure` by `FailClosed`, because termination lets sibling calls run. From S4, AGT rogue detection runs per user instead (see [Operations](#operations-asi06-asi08-asi10)) |
 | Tool result screening | [middleware/tool_result_guard.py](src/chat_api/middleware/tool_result_guard.py) | `MiddlewareFailure`: the result never reaches the model and no further call starts. Clean results are wrapped in `<untrusted-data>` |
 | Call budget | [session_store.py](src/chat_api/session_store.py) | Atomic reservation per `oid` and session id |
 | Prompt pin | [prompts.py](src/chat_api/prompts.py) | chat-api exits non-zero at startup |
@@ -91,6 +91,48 @@ uv run python -m governance.descriptors --write
 | Output guard | [middleware/output_guard.py](src/chat_api/middleware/output_guard.py) | Every reply with text is held back and classified by a separate, tool-less model call. Unsafe, indeterminate, an error, or 5 s: the fixed refusal and disclaimer replace the reply, in the stream and in the history |
 
 `REPORT_AGENT_CANARY=CANARY-ENV-R5X` is set in report-agent only (a Container Apps secret on Azure), as in the starter. `GET /diagnostics/report-agent` on chat-api (signed-in users only) reports whether report-agent is up and whether its canary is set, as booleans; the red team uses it as the ASI05 oracle. The CLI asks before approving a report (`--approve yes|no` for scripts) and shows a spinner while the report is generated and reviewed.
+
+## Operations (ASI06, ASI08, ASI10)
+
+Slice S4 (`s4-operations`) bounds the agent's memory, keeps it answering when a dependency fails, and gives operators an audit trail, per-user rogue detection, and a kill switch. Limits live in [governance.yaml](policies/governance.yaml).
+
+| Control | Where | On detection, error, or breach |
+|---------|-------|--------------------------------|
+| Bounded memory | [history.py](src/chat_api/history.py), [middleware/memory_guard.py](src/chat_api/middleware/memory_guard.py) | A run sees at most the last 50 messages (cut at a user turn); a conversation keeps its last 100; every text field is capped at 10,000 characters |
+| Partitioned, expiring history | `chat_history` container ([seed](src/seed/load.py), [core.bicep](infra/modules/core.bicep)) | Partition `/userId`: every read and write names the caller's `oid`, so another user's conversation is not there. Default TTL 90 days after the last write |
+| Memory screening | AGT `MemoryGuard` in [memory_guard.py](src/chat_api/middleware/memory_guard.py) | A turn with any high or critical alert (injection phrasing, code, hidden-instruction markup carrying a standing rule, bidirectional characters) is not written at all. Each stored message carries AGT's SHA-256; a turn that fails it, or that is flagged later, is left out when the history is loaded |
+| Timeouts and retries | [middleware/resilience.py](src/chat_api/middleware/resilience.py), [identity.py](src/chat_api/identity.py), [tools_report.py](src/chat_api/tools_report.py) | Connect 5 s and read 30 s on every HTTP dependency, the MCP client's HTTP client and session, and the model client. At most 2 retries with full jitter, only when a dependency cannot be reached (never after a timeout, never for report submissions) |
+| Circuit breakers | `CircuitBreaker` for health-mcp and the report agent | After 3 consecutive failures, calls fail fast for 30 s; one trial call then closes or reopens it. Opening and closing are audited |
+| Per-user MCP sessions | [mcp_pool.py](src/chat_api/mcp_pool.py) | A bulkhead: each signed-in user has their own health MCP session (at most 256, least recently used closed first), so one user's burst or stalled call cannot hold another user's tool calls. A refreshed token for the same user reuses the session; another user's principal is refused. The breaker stays shared |
+| Graceful degradation | `GracefulDegradation` | A run that failed because a dependency is down gets a short "try again" reply, which still passes the output guard. Control failures (`MiddlewareFailure`, identity, descriptor pins) are never degraded |
+| Token budget | `max_tokens_per_conversation`, `max_output_tokens` | 400,000 model tokens per conversation (counted from the model's usage after each call) and 2,000 per reply; then a fixed reply before any model call. The tool loop has at most 8 model round trips and 120 s |
+| Audit trail | [middleware/audit.py](src/chat_api/middleware/audit.py) | AGT `AuditTrailMiddleware`, the capability guard, rogue detection, and the solution's own controls write AGT `AuditEntry` records chained by SHA-256 to the Cosmos DB `audit` container. `data` keeps scalar allowlisted fields only, so tool results (AGT's `result_preview`) and exception text never reach it. Refused runs are recorded |
+| Rogue detection | [middleware/rogue_guard.py](src/chat_api/middleware/rogue_guard.py) | One AGT `RogueAgentDetector` per signed-in user (quarantine at `critical`) plus a ceiling of 50 executed tool calls in 120 s across that user's conversations, above the 20-call conversation budget. Either quarantines that user's agent for 300 s: tool calls abort their batch and new runs get a fixed reply. On release the user starts with a fresh detector and call window. Other users are not affected |
+| Kill switch | [middleware/kill_switch.py](src/chat_api/middleware/kill_switch.py) | Checked before every run and every tool call. Locally `AGENT_KILL_SWITCH`; on Azure the `agent-kill-switch` key in App Configuration, read with the managed identity and cached for 10 s. An engaged switch, an unreadable store, a missing key, or an unknown value refuses the run with a fixed reply before the model is called |
+| Telemetry | [app.py](src/chat_api/app.py) | OpenTelemetry with `enable_sensitive_data=False`: no prompts, tool arguments, or health data in traces |
+
+The kill switch, a quarantine, and an exhausted token budget answer with fixed text instead of an error, because AG-UI reduces every exception to a generic `RUN_ERROR`. Nothing else runs for those turns, and nothing is written to the history.
+
+Flip the kill switch:
+
+```powershell
+# Local: chat-api reads AGENT_KILL_SWITCH at each run; recreate it (and the sidecar in its network namespace).
+$env:AGENT_KILL_SWITCH = "on"
+podman compose rm --stop --force entra-sidecar; podman compose up -d --no-deps chat-api; podman compose up -d --no-deps entra-sidecar
+# Azure (takes effect within 10 s):
+az appconfig kv set --endpoint (azd env get-value APP_CONFIG_ENDPOINT) --auth-mode login --key agent-kill-switch --value on --yes
+```
+
+Set it back to `off` the same way.
+
+Verify the stored audit chains (edited entries, broken links, and gaps in the sequence are reported):
+
+```powershell
+uv run --env-file .env python -m chat_api.middleware.audit          # local emulator
+podman compose exec chat-api python -m chat_api.middleware.audit    # inside the stack
+```
+
+The tool and token budgets, quarantines, and circuit breakers are in-process, so chat-api runs one replica on Azure.
 
 ## Prerequisites
 
@@ -152,8 +194,10 @@ uv run biotrackr-chat --target solution-azure --as alice "summarise my sleep thi
 
 1. `preup` and `preprovision` create or reuse the Agent ID objects and write their IDs into the azd environment. (azd checks Bicep inputs before `preprovision` runs, so a fresh `azd up` needs `preup`.) When the registry already exists, they also build the chart runner image, so Bicep gives the session pool the real image.
 2. Bicep provisions `rg-<env>`: Container Apps (workload profiles), ACR, two managed identities (one for chat-api and health-mcp, one for the report agent only), the `chartrunner` Dynamic Sessions pool with egress disabled, Cosmos DB with local auth disabled, Foundry with key auth disabled, and monitoring.
-3. `postprovision` adds the Blueprint federated credential for the managed identity, seeds Cosmos DB with your Entra login, and on a fresh environment builds the chart runner image in ACR (linux/amd64, tagged by a content hash) and points the session pool at it ([build_chart_runner.ps1](scripts/hooks/build_chart_runner.ps1)). Until then the pool holds a placeholder image with no warm sessions.
+3. `postprovision` adds the Blueprint federated credential for the managed identity, seeds Cosmos DB with your Entra login, and on a fresh environment builds the chart runner image in ACR (linux/amd64, tagged by a content hash) and points the session pool at it ([build_chart_runner.ps1](scripts/hooks/build_chart_runner.ps1)). Until then the pool holds a placeholder image with no warm sessions. It then creates the `agent-kill-switch` key in App Configuration with `off` if it is missing ([kill_switch.ps1](scripts/hooks/kill_switch.ps1)); it never resets an existing value.
 4. azd builds the images in ACR and deploys them.
+
+Bicep also creates the App Configuration store (Standard, access keys disabled; chat-api's identity is Data Reader and you are Data Owner) and the Cosmos DB `chat_history` and `audit` containers.
 
 Images build in ACR from the `runtime` stage. Only chat-api has external ingress; health-mcp and report-agent are internal, and the sidecar listens on 127.0.0.1 inside the chat-api replica.
 
@@ -173,7 +217,7 @@ Controls carry a `# ASI0x: <control>` comment. Weaknesses that later slices fix 
 | ASI03 | `src/auth_common/jwt_validator.py`                | One issuer per `IDENTITY_MODE`; audience, scope, client, tenant, expiry, `oid`      |
 | ASI03 | `src/chat_api/auth.py`, `app.py`                  | Inbound JWT on every route; threads scoped to `oid`; `/conversations` owner-only    |
 | ASI03 | `src/chat_api/identity.py`, `agent.py`            | OBO as the chat agent identity; fails closed before the model call                  |
-| ASI03 | `src/chat_api/history.py`                         | Refuses to load or append to another user's session                                 |
+| ASI03 | `src/chat_api/history.py`                         | Refuses to load or append to another user's session; reads only the caller's partition (S4) |
 | ASI03 | `src/health_mcp/auth.py`, `tools.py`              | Token verifier (`aud`, `Health.Read`, `azp`); no `user_id` parameter                |
 | ASI03 | `src/auth_common/azure_credential.py`, `agent.py` | Entra for Foundry and Cosmos DB; the key is used only for the plain-HTTP emulator   |
 | ASI03 | `compose.yaml`, `infra/`                          | Sidecar on loopback only; internal MCP ingress; keyless Foundry and Cosmos DB       |
@@ -182,10 +226,17 @@ Controls carry a `# ASI0x: <control>` comment. Weaknesses that later slices fix 
 | ASI04 | `policies/mcp_tools.lock.json`, `src/governance/descriptors.py`, `src/chat_api/mcp_pinning.py` | (S2) MCP descriptor pinning at server startup and on every `tools/list` |
 | ASI05 | `src/report_agent/static_check.py`                | (S3) AST allowlist, defence in depth                                                |
 | ASI05 | `src/report_agent/executor.py`, `src/chart_runner/`, `compose.yaml`, `infra/modules/sessions_pool.bicep` | (S3) Code runs only in the isolated runner; never in-process |
+| ASI06 | `src/chat_api/history.py`, `src/chat_api/middleware/memory_guard.py` | (S4) 50 hydrated, 100 stored, 10,000 characters per field; AGT `MemoryGuard` drops flagged turns; integrity on read |
+| ASI06 | `src/seed/load.py`, `infra/modules/core.bicep`    | (S4) `chat_history` partitioned by `/userId` with a 90 day default TTL               |
 | ASI07 | `src/report_agent/app.py`, `schemas.py`, `src/chat_api/identity.py`, `tools_report.py` | (S3) App-only `Report.Generate` token with `azp` check; typed payloads; pinned local agent card |
+| ASI08 | `src/chat_api/middleware/resilience.py`, `mcp_pool.py`, `agent.py`, `identity.py`, `tools_report.py` | (S4) Timeouts, jittered retries, circuit breakers, per-user MCP sessions, graceful degradation through the output guard, token budget |
 | ASI09 | `src/chat_api/tools_report.py`, `approvals.py`, `policies/governance.yaml` | (S3) Approval before every report; decision-only resumes; two reports per conversation |
 | ASI09 | `src/report_agent/reviewer.py`                    | (S3) Fresh-context reviewer, fails closed                                           |
-| ASI09 | `src/chat_api/middleware/output_guard.py`         | (S3) Fail-closed output classifier with fixed refusal and disclaimer                |
+| ASI09 | `src/chat_api/middleware/output_guard.py`         | (S3) Fail-closed output classifier with fixed refusal and disclaimer; (S4) dose steps framed as general or hypothetical count as unsafe |
+| ASI10 | `src/chat_api/middleware/audit.py`                | (S4) Hash-chained AGT audit entries in Cosmos DB, no health payloads; chain verifier |
+| ASI10 | `src/chat_api/middleware/rogue_guard.py`, `policies/governance.yaml` | (S4) Per-user AGT rogue detection and burst ceiling; quarantine per user      |
+| ASI10 | `src/chat_api/middleware/kill_switch.py`, `infra/modules/appconfig.bicep` | (S4) Kill switch per run and per tool call; App Configuration on Azure; fails closed |
+| ASI10 | `src/chat_api/app.py`                             | (S4) OpenTelemetry `enable_sensitive_data=False`                                    |
 
 ## Test
 
@@ -195,4 +246,4 @@ uv run pytest                                                 # unit tests, no n
 $env:RUN_INTEGRATION = "1"; uv run pytest tests/integration    # against the running entra-mode stack
 ```
 
-The unit tests cover the fail-closed contract. S1: 401 with zero agent runs, MCP 401 with zero Cosmos queries, alice's token never reading bob's records, and the simulator's negative cases. S2: input screening with zero model and tool calls; a poisoned tool result with no further model or tool call; denied, unknown, and out-of-policy calls and budget breaches aborting whole parallel batches (streaming and non-streaming); concurrent budget reservations; prompt and descriptor tampering exiting non-zero in a subprocess; and the governed agent against the real MCP server in process. S3: the static-check corpus; runner jobs with an empty environment, a wall clock, and PNG-only output; report-agent caller checks (401 with zero pipeline work); validation, generator, static-check, runner, and reviewer faults all `denied` with no chart; output classifier faults (unsafe, indeterminate, error, timeout) giving the fixed refusal, streamed and multi-turn; and approvals through the real AG-UI endpoint (single budget reservation, replay, rejection, forged ids, another user's resume, edited arguments, the report cap). The integration tests check that health-mcp cannot reach the sidecar, that `DefaultAzureCredential` gets a Foundry token inside chat-api, and that the chart runner has no network, no canary, no engine socket, no writes outside `/tmp`, and kills runaway jobs.
+The unit tests cover the fail-closed contract. S1: 401 with zero agent runs, MCP 401 with zero Cosmos queries, alice's token never reading bob's records, and the simulator's negative cases. S2: input screening with zero model and tool calls; a poisoned tool result with no further model or tool call; denied, unknown, and out-of-policy calls and budget breaches aborting whole parallel batches (streaming and non-streaming); concurrent budget reservations; prompt and descriptor tampering exiting non-zero in a subprocess; and the governed agent against the real MCP server in process. S3: the static-check corpus; runner jobs with an empty environment, a wall clock, and PNG-only output; report-agent caller checks (401 with zero pipeline work); validation, generator, static-check, runner, and reviewer faults all `denied` with no chart; output classifier faults (unsafe, indeterminate, error, timeout) giving the fixed refusal, streamed and multi-turn; and approvals through the real AG-UI endpoint (single budget reservation, replay, rejection, forged ids, another user's resume, edited arguments, the report cap). S4: an engaged, unreadable, or unknown kill switch with zero model and tool calls (also through AG-UI, as text rather than `RUN_ERROR`), the App Configuration cache and its fail-closed expiry; a burst across conversations quarantining only that user, AGT's per-user detector, and one full conversation never tripping the ceiling; MemoryGuard dropping a planted rule that input screening lets through, field, store, and hydration caps, partitioned reads, tampered turns left out, and the configured TTL (the emulator does not expire items); breaker, retry, and degradation behaviour (including MAF's real error for a refused MCP connection) with control failures never degraded, per-user MCP sessions against the real server (a refreshed token makes no new handshake, a stalled user does not hold another), and the degraded reply going through the output guard; token accounting; and the audit chain (no health payloads, refused runs recorded, edits and gaps detected). The integration tests check that health-mcp cannot reach the sidecar, that `DefaultAzureCredential` gets a Foundry token inside chat-api, that the chart runner has no network, no canary, no engine socket, no writes outside `/tmp`, and kills runaway jobs, and that the live containers have the S4 partition keys and TTL and the stored audit chains verify, and that the live output classifier rates a hypothetical dose step unsafe and a step count safe.

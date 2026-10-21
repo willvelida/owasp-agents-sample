@@ -122,6 +122,19 @@ module reportAgent 'modules/report_agent.bicep' = {
   }
 }
 
+module appConfig 'modules/appconfig.bicep' = {
+  scope: rg
+  name: 'appconfig'
+  params: {
+    location: location
+    tags: tags
+    resourceToken: resourceToken
+    readerPrincipalId: core.outputs.managedIdentityPrincipalId
+    developerPrincipalId: principalId
+    developerPrincipalType: principalType
+  }
+}
+
 module chatApi 'modules/chat_api.bicep' = {
   scope: rg
   name: 'chat-api'
@@ -145,6 +158,7 @@ module chatApi 'modules/chat_api.bicep' = {
     modelName: modelName
     cosmosEndpoint: core.outputs.cosmosEndpoint
     appInsightsConnectionString: core.outputs.appInsightsConnectionString
+    appConfigEndpoint: appConfig.outputs.endpoint
   }
 }
 
@@ -164,3 +178,4 @@ output AZURE_CONTAINER_REGISTRY_NAME string = core.outputs.registryName
 output CHART_SESSION_POOL_NAME string = sessionsPool.outputs.name
 output CHART_SESSIONS_ENDPOINT string = sessionsPool.outputs.poolManagementEndpoint
 output REPORT_IDENTITY_PRINCIPAL_ID string = core.outputs.reportIdentityPrincipalId
+output APP_CONFIG_ENDPOINT string = appConfig.outputs.endpoint

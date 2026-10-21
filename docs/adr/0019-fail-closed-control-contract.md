@@ -1,7 +1,7 @@
 ---
 title: "ADR-0019: Enforce a fail-closed contract for every solution control"
 description: Define the required failure behaviour and test for each control type so that no control fails open
-ms.date: 2026-10-19
+ms.date: 2026-10-20
 ms.topic: reference
 ---
 
@@ -75,3 +75,22 @@ The S3 rows are implemented and each has a spy-based test:
 * Reviewer: an error, a timeout, or anything other than `{"approved": <bool>}` persists `denied` with `rejected_by: reviewer` and no chart; each review uses a fresh agent (`tests/test_report_agent.py`). Validation, generator, static-check, and runner failures are denied the same way, and later stages never run.
 * Approval (`approval_mode="always_require"` for `generate_report`): the call waits for an AG-UI interrupt; the batch guard reserves the budget once, at proposal; a replayed approval never runs the tool again; a forged interrupt id, another user's resume, and a third report in one conversation are refused. ag-ui 1.6.0 accepts edited tool arguments on resume, which would run input the batch guard never saw, so the endpoint rejects any resume carrying more than the yes/no decision with HTTP 400 before the agent runs (`chat_api/approvals.py`, `tests/test_report_tools.py`).
 * `FunctionTool.max_invocations` counts across the tool instance's lifetime (every user on the shared agent), so the per-conversation cap is part of the atomic tool budget (`tool_limits` in `governance.yaml`).
+
+## Amendment (2026-10-20, slice S4)
+
+The S4 rows are implemented and each has a spy-based test:
+
+* Kill switch on: every run is refused before input screening, context providers, or the model (the model client spy records zero calls, no tool runs, nothing is stored), streamed, non-streamed, and through the AG-UI endpoint; a switch flipped mid-run aborts the next tool call with `MiddlewareFailure` (`tests/test_kill_switch.py`). On Azure an unreadable App Configuration store, a missing key, or an unknown value counts as engaged once the 10 second cache expires.
+* Rogue detection: a quarantined user's tool calls abort their batch with `MiddlewareFailure` and their new runs are refused before the model; AGT's per-user detector denies with `MiddlewareTermination`, which is converted (`tests/test_rogue_guard.py`).
+* Memory: a turn that AGT MemoryGuard flags is never written; a stored turn that fails its integrity hash or is flagged later is not loaded (`tests/test_memory_guard.py`).
+* Audit: refused runs are recorded, and verification reports edited entries, broken links, and missing sequence numbers (`tests/test_audit.py`).
+
+Like the output guard, the kill switch, a quarantine, and an exhausted token budget answer with fixed text rather than raising, because AG-UI reduces any exception to a generic `RUN_ERROR`. Availability failures (a dependency down) are the one place the solution does not stop with an error: the run gets a short "try again" reply that still passes the output guard. Control failures are never turned into that reply (`tests/test_resilience.py`).
+
+| Control type                                   | Required behaviour                                           |
+|------------------------------------------------|--------------------------------------------------------------|
+| Kill switch on, unreadable, or unknown         | Fixed reply before the model call; abort the next tool call  |
+| User quarantined by rogue detection            | Abort the tool batch; fixed reply before the next model call |
+| Memory write flagged by MemoryGuard            | Do not store the turn                                        |
+| Stored message fails its integrity hash        | Do not load the turn                                         |
+| Token budget exhausted                         | Fixed reply before the model call                            |

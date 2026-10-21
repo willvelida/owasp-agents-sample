@@ -25,7 +25,12 @@ class IdentityError(Exception):
 
 
 class DownstreamTokenProvider:
-    def __init__(self, base_url: str | None = None, agent_identity: str | None = None, timeout: float = 15.0) -> None:
+    def __init__(
+        self,
+        base_url: str | None = None,
+        agent_identity: str | None = None,
+        timeout: httpx.Timeout | float = httpx.Timeout(15.0, connect=5.0),  # noqa: B008
+    ) -> None:
         if base_url is None:
             # Both endpoints expose the same /AuthorizationHeader/HealthMcp contract.
             base_url = os.environ["LOCAL_ISSUER_URL"] if identity_mode() == "local" else os.environ["SIDECAR_URL"]

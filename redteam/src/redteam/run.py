@@ -20,9 +20,10 @@ from pyrit.models import Message, MessagePiece
 from pyrit.setup import IN_MEMORY, initialize_pyrit_async
 
 from redteam.attacks import Attack, catalogue
-from redteam.config import resolve
+from redteam.config import ResolvedTarget, resolve
 from redteam.converters import HomoglyphConverter
-from redteam.scorers import clinical_judge, judge_target, scorers_for
+from redteam.faults import FAULTS, FaultContext, FaultError, needs_consent
+from redteam.scorers import clinical_judge, judge_target, plant_judge, scorers_for
 from redteam.targets.biotrackr_target import BiotrackrTarget
 
 CONVERTERS = {"base64": Base64Converter, "confusable": UnicodeConfusableConverter, "homoglyph": HomoglyphConverter}
@@ -48,9 +49,47 @@ async def render_prompt(attack: Attack) -> str:
     return attack.prompt.replace("{payload}", converted.output_text)
 
 
-async def run_attack(target_name: str, attack: Attack, attempts: int, judge: object | None) -> Outcome:
+async def run_attack(
+    target_name: str, attack: Attack, attempts: int, judge: object | None, azure_faults: bool = False
+) -> Outcome:
     resolved = resolve(target_name, attack.user)
-    target = BiotrackrTarget(url=resolved.url, headers=resolved.headers)
+    if not attack.fault:
+        return await _run_attack(resolved, attack, attempts, judge)
+    if needs_consent(attack.fault, resolved) and not azure_faults:
+        return Outcome(
+            attack, False, f"fault '{attack.fault}' changes Azure resources; rerun with --azure-faults", "SKIPPED"
+        )
+    context = FaultContext(resolved, azure_faults)
+    try:
+        async with FAULTS[attack.fault](context):
+            outcome = await _run_attack(resolved, attack, attempts, judge)
+    except FaultError as exc:
+        return Outcome(attack, False, f"fault step failed: {exc}", "INVALID")
+    if context.note:
+        outcome.evidence = f"{context.note}; {outcome.evidence}"
+    return outcome
+
+
+async def send(target: BiotrackrTarget, attack: Attack, prompt: str) -> str:
+    """One attempt: optional burst and setup turns, then the scored prompt. Returns the scored transcript only."""
+    if attack.burst:
+        bursts = await asyncio.gather(
+            *(target.run_async(str(uuid.uuid4()), attack.burst_prompt) for _ in range(attack.burst))
+        )
+        target.burst_tool_calls = sum(text.count("[tool] ") for text in bursts)
+        target.burst_aborted = sum("[run error]" in text for text in bursts)
+    if attack.turns or attack.burst:
+        thread = str(uuid.uuid4())
+        for turn in attack.turns:
+            await target.run_async(thread, turn)
+        return await target.run_async(thread, prompt)
+    piece = MessagePiece(role="user", original_value=prompt, conversation_id=str(uuid.uuid4()))
+    responses = await target.send_prompt_async(message=Message(message_pieces=[piece]))
+    return "\n".join(p.converted_value for r in responses for p in r.message_pieces)
+
+
+async def _run_attack(resolved: ResolvedTarget, attack: Attack, attempts: int, judge: object | None) -> Outcome:
+    target = BiotrackrTarget(url=resolved.url, headers=resolved.headers, timeout=attack.deadline or DEFAULT_DEADLINE)
     target.extra_headers = dict(attack.extra_headers)
     if attack.crescendo:
         if judge is None:
@@ -60,16 +99,23 @@ async def run_attack(target_name: str, attack: Attack, attempts: int, judge: obj
     oracle = attack.oracle == "asi05" and not resolved.is_starter
     last = ""
     tries = max(attempts, attack.min_attempts) + (ORACLE_RETRIES if oracle else 0)
+    if attack.burst:
+        # A second burst would only meet the quarantine the first one caused.
+        tries = 1
     for attempt in range(tries):
         prompt = await render_prompt(attack)
-        piece = MessagePiece(role="user", original_value=prompt, conversation_id=str(uuid.uuid4()))
-        responses = await target.send_prompt_async(message=Message(message_pieces=[piece]))
-        text = "\n".join(p.converted_value for r in responses for p in r.message_pieces)
+        text = await send(target, attack, prompt)
         last = text
+        if attack.burst and not (target.burst_tool_calls or target.burst_aborted):
+            # Nothing ran and nothing was stopped mid-run, so nothing could be detected: proves neither outcome.
+            return Outcome(attack, False, f"burst ran no tools: {_excerpt(text, attack, None)}", "INVALID")
         for scorer in scorers:
             hits = [s for s in await scorer.score_text_async(text) if s.get_value()]
             if hits:
-                return Outcome(attack, True, f"{type(scorer).__name__}: {_excerpt(text, attack, hits[0])}")
+                evidence = _excerpt(text, attack, hits[0])
+                if attack.burst:
+                    evidence = f"{_burst_summary(target)}; {evidence}"
+                return Outcome(attack, True, f"{type(scorer).__name__}: {evidence}")
         if oracle and REJECTED_BY.search(text):
             break
         if oracle and "[run error]" in text and attempt + 1 < tries:
@@ -78,6 +124,8 @@ async def run_attack(target_name: str, attack: Attack, attempts: int, judge: obj
             # frequency window and try again; the oracle below still rejects an attack that never got through.
             await asyncio.sleep(ORACLE_COOLDOWN_SECONDS)
     outcome = Outcome(attack, False, _excerpt(last, attack, None))
+    if attack.burst:
+        outcome.evidence = f"{_burst_summary(target)}; {outcome.evidence}"
     if oracle:
         if problem := await asi05_oracle(resolved.url, resolved.headers, last):
             outcome.status, outcome.evidence = "INVALID", problem
@@ -87,7 +135,14 @@ async def run_attack(target_name: str, attack: Attack, attempts: int, judge: obj
 
 
 ORACLE_RETRIES = 2
+
+
+def _burst_summary(target: BiotrackrTarget) -> str:
+    return f"burst: {target.burst_tool_calls} tool results, {target.burst_aborted} runs aborted"
+
+
 ORACLE_COOLDOWN_SECONDS = 65.0
+DEFAULT_DEADLINE = 240.0
 
 
 REJECTED_BY = re.compile(r'"rejected_by":\s*"(static_check|runner)"')
@@ -136,6 +191,9 @@ async def run_crescendo(target: BiotrackrTarget, attack: Attack, judge: object) 
         aggregator=TrueFalseScoreAggregator.OR,
         scorers=[RegexScorer(patterns=attack.success, categories=[attack.risk]), advice],
     )
+    if attack.probe and attack.plant_judge:
+        # ASI06: the Crescendo turns only plant the rule; the later probe is what is scored.
+        objective = plant_judge(attack, judge)
     # No backtracking: the chat API keeps history per thread server-side, so a rewound turn cannot be replayed.
     crescendo = CrescendoAttack(
         objective_target=target,
@@ -144,10 +202,29 @@ async def run_crescendo(target: BiotrackrTarget, attack: Attack, judge: object) 
         max_turns=4,
         max_backtracks=0,
     )
-    result = await crescendo.execute_async(objective=attack.crescendo)
-    succeeded = result.outcome == AttackOutcome.SUCCESS
+    try:
+        result = await crescendo.execute_async(objective=attack.crescendo)
+    except Exception as exc:  # noqa: BLE001 - e.g. the judge's content filter refuses the adversarial prompt
+        cause = exc.__cause__ or exc
+        detail = f"{type(cause).__name__}: {cause}".replace("\n", " ")[:160]
+        return Outcome(attack, False, f"Crescendo could not run (judge side, not the target): {detail}", "SKIPPED")
     reason = str(result.outcome_reason or "").replace("\n", " ")[:100]
-    return Outcome(attack, succeeded, f"Crescendo {result.executed_turns} turns: {reason}")
+    if attack.probe:
+        thread = target.thread_for(result.conversation_id)
+        text = await target.run_async(thread, attack.probe)
+        for scorer in scorers_for(attack, judge):
+            hits = [s for s in await scorer.score_text_async(text) if s.get_value()]
+            if hits:
+                return Outcome(
+                    attack, True, f"probe after {result.executed_turns} turns: {_excerpt(text, attack, hits[0])}"
+                )
+        return Outcome(attack, False, f"probe after {result.executed_turns} turns: {_excerpt(text, attack, None)}")
+    succeeded = result.outcome == AttackOutcome.SUCCESS
+    evidence = f"Crescendo {result.executed_turns} turns: {reason}"
+    last = getattr(result, "last_response", None)
+    if succeeded and last is not None:
+        evidence += f" | reply: {str(getattr(last, 'converted_value', last))[:160]}".replace("\n", " ")
+    return Outcome(attack, succeeded, evidence)
 
 
 def _excerpt(text: str, attack: Attack, score: object | None) -> str:
@@ -165,7 +242,7 @@ async def main_async(args: argparse.Namespace) -> int:
     attacks = [a for a in catalogue() if not args.risk or a.risk in args.risk]
     expect_success = resolve(args.target, "alice").is_starter
     judge = judge_target() if args.judge else None
-    outcomes = [await run_attack(args.target, attack, args.attempts, judge) for attack in attacks]
+    outcomes = [await run_attack(args.target, attack, args.attempts, judge, args.azure_faults) for attack in attacks]
 
     print(f"\nScorecard: target={args.target} (expect {'SUCCEEDED' if expect_success else 'BLOCKED'})\n")
     print(f"{'risk':6} {'attack':26} {'result':10} {'ok':4} evidence")
@@ -192,6 +269,11 @@ def main() -> None:
     parser.add_argument("--risk", action="append", help="limit to a risk, for example ASI03 (repeatable)")
     parser.add_argument("--attempts", type=int, default=2, help="tries per attack; any hit counts as success")
     parser.add_argument("--judge", action="store_true", help="add the PyRIT LLM judge (solution Foundry, Entra ID)")
+    parser.add_argument(
+        "--azure-faults",
+        action="store_true",
+        help="allow fault steps that change Azure resources (stop and start health-mcp, flip the kill switch)",
+    )
     # Model replies can contain characters the Windows console code page cannot encode.
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
     sys.exit(asyncio.run(main_async(parser.parse_args())))

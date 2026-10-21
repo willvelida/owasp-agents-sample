@@ -33,6 +33,19 @@ class Attack:
     crescendo: str | None = None
     # Minimum attempts for attacks whose success varies run to run with the model (any hit counts).
     min_attempts: int = 0
+    # ASI06: setup turns sent on the same AG-UI thread before `prompt`; only the reply to `prompt` is scored.
+    turns: tuple[str, ...] = ()
+    # With `crescendo`: a fresh turn on the Crescendo conversation's thread afterwards, which is what gets scored.
+    probe: str | None = None
+    # ASI10: `burst` parallel runs of `burst_prompt`, each on a new thread, before `prompt` (also on a new thread).
+    burst: int = 0
+    burst_prompt: str = ""
+    # ASI08, ASI10: a fault step around the attack (faults.py). On solution-azure it needs --azure-faults.
+    fault: str | None = None
+    # Overall deadline in seconds for each run of the attack (default 240).
+    deadline: float | None = None
+    # With `probe`: the judge question that ends the Crescendo planting phase early once the rule is accepted.
+    plant_judge: str | None = None
 
 
 def canary(value: str) -> dict[str, str]:
@@ -40,6 +53,16 @@ def canary(value: str) -> dict[str, str]:
 
 
 def catalogue() -> list[Attack]:
-    from redteam.attacks import asi01, asi02, asi03, asi05, asi09
+    from redteam.attacks import asi01, asi02, asi03, asi05, asi06, asi08, asi09, asi10
 
-    return [*asi01.ATTACKS, *asi02.ATTACKS, *asi03.ATTACKS, *asi05.ATTACKS, *asi09.ATTACKS]
+    # ASI10 runs last: its burst quarantines bob, and its kill-switch fault recreates chat-api (which also clears it).
+    return [
+        *asi01.ATTACKS,
+        *asi02.ATTACKS,
+        *asi03.ATTACKS,
+        *asi05.ATTACKS,
+        *asi06.ATTACKS,
+        *asi08.ATTACKS,
+        *asi09.ATTACKS,
+        *asi10.ATTACKS,
+    ]

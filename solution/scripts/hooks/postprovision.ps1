@@ -28,3 +28,7 @@ if (-not $?) { exit 1 }
 # built in ACR and set on the pool here.
 & (Join-Path $PSScriptRoot 'build_chart_runner.ps1')
 if (-not $?) { exit 1 }
+
+# ASI10: create the kill switch (off) if it is missing; never reset an engaged one.
+& (Join-Path $PSScriptRoot 'kill_switch.ps1')
+if (-not $?) { exit 1 }
