@@ -12,7 +12,7 @@ dependencies = [
     "agent-framework-devui==1.0.0b261015",
     "agent-governance-toolkit-core==5.0.0",
     "agent-governance-toolkit-cli==5.0.0",
-    "mcp==1.30.0",
+    "mcp==2.3.0",
     "azure-cosmos==4.17.1",
     "azure-identity==1.26.0",
     "pyjwt[crypto]==2.15.1",
