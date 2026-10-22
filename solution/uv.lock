@@ -318,16 +318,16 @@ wheels = [
 
 [[package]]
 name = "azure-appconfiguration"
-version = "1.7.2"
+version = "1.10.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "azure-core" },
     { name = "isodate" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d3/9f/f2a9ab639df9f9db2112ded1c6286d1a685f6dadc8b56fc1f1d5faed8c57/azure_appconfiguration-1.7.2.tar.gz", hash = "sha256:cefd75b298b898a8ed9f73048f3f39f4e81059a58cd832d0523787fc1d912a06", size = 120992, upload-time = "2025-10-20T20:26:30.072Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/60/95/a8f5a6d2db7d173e4f51f2af2e29cad98118a5b134273acc87794d2185e9/azure_appconfiguration-1.10.0.tar.gz", hash = "sha256:63e2d8e2463cfd405bc5a4dad876c01e9bfbdf4dc3f6ee8eec79d665153899d1", size = 142414, upload-time = "2026-10-09T00:18:23.934Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c4/59/c21dfb3ee35fe723c7662b3e468b20532947e73e11248971c45b7554590b/azure_appconfiguration-1.7.2-py3-none-any.whl", hash = "sha256:8cb62acd32efa84ae1e1ce30118ab4b412b3652f3ab6e86f811ec2e48388d083", size = 100202, upload-time = "2025-10-20T20:26:31.261Z" },
+    { url = "https://files.pythonhosted.org/packages/8f/4a/d971d92a642821f598112e62e9f58f87c27e36fce706b26393e8c027ebc6/azure_appconfiguration-1.10.0-py3-none-any.whl", hash = "sha256:10535c40b7279f13b26c856abed52c4d0136587e0dd6bdbd812bea061dcddd28", size = 118476, upload-time = "2026-10-09T00:18:25.616Z" },
 ]
 
 [[package]]
@@ -435,7 +435,7 @@ requires-dist = [
     { name = "agent-governance-toolkit-cli", specifier = "==5.0.0" },
     { name = "agent-governance-toolkit-core", specifier = "==5.0.0" },
     { name = "aiohttp", specifier = "==3.14.5" },
-    { name = "azure-appconfiguration", specifier = "==1.7.2" },
+    { name = "azure-appconfiguration", specifier = "==1.10.0" },
     { name = "azure-cosmos", specifier = "==4.17.1" },
     { name = "azure-identity", specifier = "==1.26.0" },
     { name = "cryptography", specifier = "==49.0.0" },
@@ -451,7 +451,7 @@ requires-dist = [
 chart = [
     { name = "matplotlib", specifier = "==3.11.2" },
     { name = "numpy", specifier = "==2.5.4" },
-    { name = "starlette", specifier = "==1.8.0" },
+    { name = "starlette", specifier = "==1.9.0" },
     { name = "uvicorn", specifier = "==0.54.0" },
 ]
 dev = [
@@ -1696,15 +1696,15 @@ wheels = [
 
 [[package]]
 name = "starlette"
-version = "1.8.0"
+version = "1.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e9/0c/6efb252d091ecccd7d62048ae11f0ea35cd75a4fbaeea5e30f9c3bf91d10/starlette-1.8.0.tar.gz", hash = "sha256:1565dc0b35d5737a271ed1e0e04e949f4e81198799f216d2667b0a0fb9cf9522", size = 2730457, upload-time = "2026-10-13T07:54:39.53Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ad/eb/4e197bf26b023abafc5e9043ec8710d7de0fcb032d0969045236d72aa0b1/starlette-1.9.0.tar.gz", hash = "sha256:3d931de246ed870e35ce605974440816ef895e592f255d1396cfdf191d4c4318", size = 2732466, upload-time = "2026-10-18T15:50:33.189Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c1/b0/5742e4ac7af5eb58ec3470a537a49d7aa507e5539413e504b3a65ef50ba8/starlette-1.8.0-py3-none-any.whl", hash = "sha256:dfdd6b29c26483288088d990eee59631dedadd66ce20d203402a7ca8e3c4656f", size = 79612, upload-time = "2026-10-13T07:54:38.019Z" },
+    { url = "https://files.pythonhosted.org/packages/f3/93/181df62699d9b5aca1d87e5cfda131dac87e3cdaebf668662f7206ca3470/starlette-1.9.0-py3-none-any.whl", hash = "sha256:fd3f159936e882d06c1108f84688f7cda2cf85fc6a592a50edbd175e882c2ddc", size = 80335, upload-time = "2026-10-18T15:50:31.526Z" },
 ]
 
 [[package]]

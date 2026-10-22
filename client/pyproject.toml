@@ -14,7 +14,7 @@ dependencies = [
 biotrackr-chat = "biotrackr_client.cli:main"
 
 [dependency-groups]
-dev = ["ruff==0.14.0"]
+dev = ["ruff==0.17.1"]
 
 [build-system]
 requires = ["hatchling"]
