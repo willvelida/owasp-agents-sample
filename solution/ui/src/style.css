@@ -1,0 +1,41 @@
+:root {
+  font-family: system-ui, "Segoe UI", Arial, Helvetica, sans-serif;
+  font-size: 16px;
+  color: #1f2328;
+  background: #ffffff;
+}
+body {
+  margin: 0;
+}
+.chat {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 1rem;
+}
+.busy {
+  color: #57606a;
+  font-style: italic;
+}
+.composer {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+.composer textarea {
+  flex: 1;
+  font: inherit;
+  padding: 0.5rem;
+}
+button {
+  font: inherit;
+  padding: 0.4rem 1rem;
+  cursor: pointer;
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
