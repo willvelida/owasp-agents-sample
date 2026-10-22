@@ -12,9 +12,11 @@
     "healthMcpAppId": { "value": "${HEALTH_MCP_APP_ID=}" },
     "cliAppId": { "value": "${CLI_APP_ID=}" },
     "reportApiAppId": { "value": "${REPORT_API_APP_ID=}" },
+    "spaAppId": { "value": "${SPA_APP_ID=}" },
     "chatApiExists": { "value": "${SERVICE_CHAT_API_RESOURCE_EXISTS=false}" },
     "healthMcpExists": { "value": "${SERVICE_HEALTH_MCP_RESOURCE_EXISTS=false}" },
     "reportAgentExists": { "value": "${SERVICE_REPORT_AGENT_RESOURCE_EXISTS=false}" },
+    "chatUiExists": { "value": "${SERVICE_CHAT_UI_RESOURCE_EXISTS=false}" },
     "chartRunnerImage": { "value": "${CHART_RUNNER_IMAGE=}" },
     "a2aSigningKey": { "value": "${A2A_SIGNING_KEY}" },
     "a2aVerifyKey": { "value": "${A2A_VERIFY_KEY}" }

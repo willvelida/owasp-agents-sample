@@ -53,6 +53,14 @@ resource reportIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-0
   tags: tags
 }
 
+// ASI03: the browser UI's own identity, used only to pull its image (AcrPull). It has no data-plane roles and no
+// federated credential, so the static nginx container never holds credentials it does not need.
+resource uiIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+  name: 'id-ui-${resourceToken}'
+  location: location
+  tags: tags
+}
+
 resource registry 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
   name: 'cr${resourceToken}'
   location: location
@@ -78,6 +86,16 @@ resource reportAcrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: registry
   properties: {
     principalId: reportIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roles.acrPull)
+  }
+}
+
+resource uiAcrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(registry.id, uiIdentity.id, roles.acrPull)
+  scope: registry
+  properties: {
+    principalId: uiIdentity.properties.principalId
     principalType: 'ServicePrincipal'
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roles.acrPull)
   }
@@ -261,6 +279,7 @@ output managedIdentityPrincipalId string = identity.properties.principalId
 output reportIdentityId string = reportIdentity.id
 output reportIdentityClientId string = reportIdentity.properties.clientId
 output reportIdentityPrincipalId string = reportIdentity.properties.principalId
+output uiIdentityId string = uiIdentity.id
 output registryName string = registry.name
 output registryLoginServer string = registry.properties.loginServer
 output cosmosEndpoint string = cosmos.properties.documentEndpoint

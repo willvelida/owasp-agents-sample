@@ -14,6 +14,7 @@ Sample app on applying OWASP Top 10 for Agents to your own agent.
 |--------------|---------------------------------------------------------------------------|
 | `starter/`   | Naive but plausible chat agent, health MCP server, seed loader            |
 | `solution/`  | Hardened mirror of the starter, plus Agent ID scripts, azd infra, tests   |
+| `solution/ui/` | Text-only Vue browser client for the solution (MSAL sign-in, nginx image) |
 | `client/`    | `biotrackr-chat` CLI (AG-UI client) for every target                       |
 | `redteam/`   | Shared PyRIT harness with a cumulative scorecard                           |
 | `data/seed/` | Synthetic health data for alice and bob, with attack artefacts            |
@@ -30,10 +31,11 @@ The work ships in vertical slices, each tagged when it runs end to end ([ADR-002
 | `s4-operations` | S3 plus operations: memory poisoning, a hung dependency, a tool-call burst, and an ignored kill switch succeed on the starter; MemoryGuard and bounded, expiring history, timeouts and circuit breakers, a hash-chained audit trail, per-user rogue detection, and a kill switch (App Configuration on Azure) block them (ASI06, ASI08, ASI10) |
 | `s5-supply-chain` | S4 plus signed A2A and CI: forged, replayed, and tampered report-agent requests succeed on the starter; single-use Ed25519 signatures over the exact body with a 60 s window and a replay cache block them (ASI07). Dependabot, CodeQL, SBOMs, lock checks, SHA-pinned actions, digest-pinned images, and `mcp-scan` in CI (ASI04) |
 | `s6-talk-ready` | S5 plus the [demo runbook](docs/demo-runbook.md), saved scorecards for all four targets, and two timed rehearsals (Azure and offline). The kill switch retries a cold App Configuration read once and still fails closed |
+| `s7-browser-ui` | S6 plus a text-only Vue browser client for the solution ([ADR-0025](docs/adr/0025-browser-chat-client.md)): its own Entra SPA app, an exact-origin CORS policy on chat-api, and a third Container App on non-root nginx with a strict CSP. The solution segment runs in the browser, and the CLI is the recovery path |
 
 `git diff --no-index starter solution` shows every control.
 
-## Quick start (S6)
+## Quick start (S7)
 
 For the 25-minute talk, start with the [demo runbook](docs/demo-runbook.md):
 prebuild and warm existing deployments, run the five live risks, then show the
@@ -68,6 +70,8 @@ You need Podman configured as in [docs/podman.md](docs/podman.md), uv, Python 3.
    uv run biotrackr-chat --target solution-local --as alice "Make a bar chart of my daily steps from 2026-10-13 to 2026-10-19"   # asks for approval, then reports
    ```
 
+   To use the browser instead, write `solution/ui/public/config.json` and run `npm run dev` in `solution/ui`, then sign in at `http://localhost:5173/`. `azd up` also deploys the browser client; its URL is `azd env get-value CHAT_UI_URL`. See [solution/ui/README.md](solution/ui/README.md).
+
 3. Prove it with the red team (attacks succeed on the starter and are blocked on every solution target):
 
    ```powershell
@@ -89,4 +93,5 @@ See [solution/README.md](solution/README.md) for offline mode, DevUI, and the co
 * [Research](docs/research.md)
 * [Podman setup](docs/podman.md)
 * [Solution scripts (Entra Agent ID)](solution/scripts/README.md)
+* [Browser chat UI](solution/ui/README.md)
 * [Red team](redteam/README.md)

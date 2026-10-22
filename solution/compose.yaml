@@ -109,6 +109,10 @@ services:
       AGENT_KILL_SWITCH: ${AGENT_KILL_SWITCH:-off}
       # ASI07: Ed25519 key that signs every A2A request (report_agent/a2a_security.py).
       A2A_SIGNING_KEY_FILE: /run/a2a/signing/signing.key
+      # ASI03: tokens from the CLI or the browser client (azp) only; an empty SPA_APP_ID is dropped.
+      ALLOWED_CLIENT_APP_IDS: ${CLI_APP_ID},${SPA_APP_ID:-}
+      # The Vite dev server's origin. CORS lets the browser read responses; every POST still needs a bearer.
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173}
     ports:
       - "127.0.0.1:8000:8000"
     volumes:

@@ -1,0 +1,7 @@
+node_modules/
+dist/
+dist-e2e/
+public/config.json
+test-results/
+playwright-report/
+e2e/fixtures/

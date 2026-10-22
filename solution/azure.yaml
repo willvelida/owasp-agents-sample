@@ -38,6 +38,15 @@ services:
       context: .
       target: runtime
       remoteBuild: true
+  # S7: browser chat UI (static Vue client on non-root nginx). Its own build context, so Python builds skip it.
+  chat-ui:
+    project: ./ui
+    language: docker
+    host: containerapp
+    docker:
+      path: ./Containerfile
+      context: .
+      remoteBuild: true
 
 hooks:
   # Entra Agent ID objects first, so Bicep receives the typed IDs as parameters. azd checks Bicep inputs before
@@ -52,7 +61,7 @@ hooks:
     run: ./scripts/hooks/preprovision.ps1
     interactive: true
     continueOnError: false
-  # Federated credential: Blueprint trusts the new managed identity.
+  # Federated credential: Blueprint trusts the new managed identity. Last step: the SPA redirect URI for chat-ui.
   postprovision:
     shell: pwsh
     run: ./scripts/hooks/postprovision.ps1

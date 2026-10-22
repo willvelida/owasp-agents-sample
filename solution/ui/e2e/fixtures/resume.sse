@@ -1,0 +1,9 @@
+data: {"type":"RUN_STARTED","threadId":"t","runId":"r2"}
+
+data: {"type":"TOOL_CALL_RESULT","messageId":"tr1","toolCallId":"c1","content":"<untrusted-data tool=\"generate_report\">\n{\"report_id\": \"00000000-0000-4000-8000-0000000000aa\", \"status\": \"denied\", \"rejected_by\": \"static_check\", \"reason\": \"line 1: import of 'os' is not allowed\"}\n</untrusted-data>"}
+
+data: {"type":"TEXT_MESSAGE_CONTENT","messageId":"m2","delta":"The report was denied by a static check."}
+
+data: {"type":"TEXT_MESSAGE_END","messageId":"m2"}
+
+data: {"type":"RUN_FINISHED","threadId":"t","runId":"r2","outcome":{"type":"success"}}

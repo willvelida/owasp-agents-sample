@@ -6,8 +6,12 @@
 .DESCRIPTION
     Creates (or reuses) the Agent Identity Blueprint and BlueprintPrincipal, the chat and report agent
     identities, the health MCP and report API app registrations, the demo CLI public client, the
-    delegated and app-role grants, a Blueprint dev secret for the local sidecar, the test users alice
-    and bob, and optionally a federated credential for the Azure managed identity.
+    browser client (SPA) registration, the delegated and app-role grants, a Blueprint dev secret for
+    the local sidecar, the test users alice and bob, and optionally a federated credential for the
+    Azure managed identity.
+
+    The SPA registration is found only by its stored SPA_APP_ID, or by display name when the single
+    match carries the biotrackr-blueprint tag; any other application with that name stops the run.
 
     Non-secret typed IDs go to stdout (and to the azd environment with -AzdEnvSet). Secrets and test
     user passwords go only to solution/.secrets/ (gitignored, owner-only ACL).
@@ -21,6 +25,10 @@
 .EXAMPLE
     # azd postprovision hook: federated credential only.
     ./scripts/provision_agent_id.ps1 -ManagedIdentityPrincipalId <oid> -FederatedCredentialOnly
+
+.EXAMPLE
+    # azd postprovision hook: set the SPA redirect URIs (localhost and the deployed chat-ui URL) only.
+    ./scripts/provision_agent_id.ps1 -SpaRedirectUri -UseDeviceCode
 #>
 [CmdletBinding()]
 param(
@@ -30,6 +38,7 @@ param(
     [string]$ManagedIdentityPrincipalId,
     [switch]$FederatedCredentialOnly,
     [switch]$RemoveFederatedCredential,
+    [switch]$SpaRedirectUri,
     [switch]$RotateSecret,
     [switch]$AzdEnvSet,
     [switch]$WriteDotEnv,
@@ -60,9 +69,91 @@ $Names = @{
     HealthMcp   = "$Prefix-health-mcp"
     ReportApi   = "$Prefix-report-api"
     Cli         = "$Prefix-demo-cli"
+    Spa         = "$Prefix-demo-spa"
 }
+# Marks the SPA registration as part of this Blueprint's set. The production biotrackr-chat-agent lives in the same
+# tenant, so the SPA is never matched by display name alone.
+$SetTag = $Names.Blueprint
+$SpaLocalRedirectUri = 'http://localhost:5173/'
 
 function Write-Step([string]$Message) { Write-Host "==> $Message" -ForegroundColor Cyan }
+
+function ConvertTo-Guid([string]$Value) {
+    if ($Value -match '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$') { return $Value.ToLowerInvariant() }
+    return $null
+}
+
+function ConvertTo-HttpsOrigin([string]$Value) {
+    $uri = $null
+    if ($Value -match '\s' -or -not [Uri]::TryCreate($Value, [UriKind]::Absolute, [ref]$uri)) { return $null }
+    if ($uri.Scheme -ne 'https' -or $uri.AbsolutePath -ne '/' -or $uri.Query -or $uri.Fragment -or $uri.UserInfo) { return $null }
+    return $uri.GetLeftPart([UriPartial]::Authority)
+}
+
+function Get-StoredValue([string]$Name, [scriptblock]$Convert) {
+    # A stored value counts only when azd exits 0 (it prints "key not found" on stdout otherwise) or the .env line
+    # exists, and it parses. Placeholders such as <guid> are unset. The azd environment wins over solution/.env.
+    if ((Test-Path (Join-Path $SolutionRoot 'azure.yaml')) -and (Get-Command azd -ErrorAction SilentlyContinue)) {
+        Push-Location $SolutionRoot
+        try {
+            $raw = azd env get-value $Name 2>$null
+            $ok = $LASTEXITCODE -eq 0
+        }
+        finally { Pop-Location }
+        if ($ok) {
+            $value = & $Convert ((@($raw) -join '').Trim())
+            if ($value) { return $value }
+        }
+    }
+    $dotEnv = Join-Path $SolutionRoot '.env'
+    if (Test-Path $dotEnv) {
+        $line = @(Get-Content $dotEnv | Where-Object { $_ -match "^$Name=" }) | Select-Object -First 1
+        if ($line) {
+            $value = & $Convert ($line.Substring($Name.Length + 1).Trim())
+            if ($value) { return $value }
+        }
+    }
+    return $null
+}
+
+function Test-SetTag($App) {
+    $tags = if ($App.PSObject.Properties['tags']) { @($App.tags) } else { @() }
+    return $tags -contains $SetTag
+}
+
+function Get-SpaRedirectUris($App, [string]$ChatUiOrigin) {
+    # The whole list is PATCHed every time, so a run without the chat-ui URL keeps the Azure entry already present.
+    $uris = [System.Collections.Generic.List[string]]::new()
+    $uris.Add($SpaLocalRedirectUri)
+    if ($ChatUiOrigin) { $uris.Add("$ChatUiOrigin/") }
+    elseif ($App -and $App.PSObject.Properties['spa'] -and $App.spa) {
+        foreach ($uri in @($App.spa.redirectUris)) { if ($uri -like 'https://*' -and -not $uris.Contains($uri)) { $uris.Add($uri) } }
+    }
+    return , $uris.ToArray()
+}
+
+function Get-SpaById([string]$AppId) {
+    $app = Get-Single "/applications?`$filter=appId eq '$AppId'"
+    if (-not $app -or -not (Test-SetTag $app)) {
+        throw ("SPA_APP_ID $AppId does not resolve to an application tagged $SetTag. If $($Names.Spa) was deleted on " +
+            'purpose, clear SPA_APP_ID from the azd environment (azd env set SPA_APP_ID "") and from solution/.env, then rerun.')
+    }
+    return $app
+}
+
+function Find-SpaApplication {
+    $spaId = Get-StoredValue 'SPA_APP_ID' ${function:ConvertTo-Guid}
+    if ($spaId) { return Get-SpaById $spaId }
+    $named = @((Invoke-Graph -Method GET -Uri "/applications?`$filter=displayName eq '$($Names.Spa)'").value)
+    if ($named.Count -gt 1) { throw "More than one application is named $($Names.Spa); refusing to choose. Set SPA_APP_ID to the right one." }
+    if ($named.Count -eq 1) {
+        if (-not (Test-SetTag $named[0])) {
+            throw "An application named $($Names.Spa) exists without the $SetTag tag; it is not part of this sample, so it is left untouched."
+        }
+        return $named[0]
+    }
+    return $null
+}
 
 function Invoke-Graph {
     param(
@@ -104,6 +195,7 @@ function Get-Single([string]$Uri) {
 function Get-OrCreateServicePrincipal([string]$AppId) {
     $sp = Get-Single "/servicePrincipals?`$filter=appId eq '$AppId'"
     if ($sp) { return $sp }
+    Write-Step "Creating service principal for appId $AppId"
     return Invoke-Graph -Method POST -Uri '/servicePrincipals' -Body @{ appId = $AppId }
 }
 
@@ -192,6 +284,16 @@ function Get-TokenScopes([string]$AccessToken) {
     return @($claims.scp -split ' ')
 }
 
+if ($SpaRedirectUri) {
+    # Checked before sign-in so a fresh environment (no SPA yet, or no chat-ui yet) only warns.
+    $spaAppIdValue = Get-StoredValue 'SPA_APP_ID' ${function:ConvertTo-Guid}
+    $chatUiOrigin = Get-StoredValue 'CHAT_UI_URL' ${function:ConvertTo-HttpsOrigin}
+    if (-not $spaAppIdValue -or -not $chatUiOrigin) {
+        Write-Warning 'SPA_APP_ID or CHAT_UI_URL is not set; skipping the SPA redirect URI update.'
+        return
+    }
+}
+
 if ($UseDeviceCode) {
     if (-not $TenantId) { throw '-TenantId is required with -UseDeviceCode.' }
     $accessToken = Get-DeviceCodeToken $TenantId
@@ -214,6 +316,17 @@ if ($missing.Count -gt 0) {
 if ('Directory.AccessAsUser.All' -in $grantedScopes) {
     Write-Error 'Token carries Directory.AccessAsUser.All; Agent ID APIs reject it. Remove that consent and retry.'
     exit 1
+}
+
+# --- SPA redirect URIs only (azd postprovision, after Bicep has created chat-ui) ---------------
+
+if ($SpaRedirectUri) {
+    # Resolved by appId only and tag-checked; touches nothing but this app's spa.redirectUris.
+    $spa = Get-SpaById $spaAppIdValue
+    $redirects = Get-SpaRedirectUris $spa $chatUiOrigin
+    Write-Step "Updating application $($Names.Spa) ($($spa.id)): spa.redirectUris = $($redirects -join ', ')"
+    Invoke-Graph -Method PATCH -Uri "/applications/$($spa.id)" -Body @{ spa = @{ redirectUris = $redirects } } | Out-Null
+    return
 }
 
 $blueprint = Get-Single "/applications/microsoft.graph.agentIdentityBlueprint?`$filter=displayName eq '$($Names.Blueprint)'"
@@ -274,6 +387,7 @@ if (-not $blueprintPrincipal) {
 # Health MCP API: delegated scope Health.Read, v2 tokens (aud = appId).
 $healthMcp = Get-OrCreateApplication $Names.HealthMcp @{ signInAudience = 'AzureADMyOrg' }
 $healthScopeId = Get-ScopeId $healthMcp 'Health.Read'
+Write-Step "Updating application $($Names.HealthMcp) ($($healthMcp.id)): identifierUris, api"
 Invoke-Graph -Method PATCH -Uri "/applications/$($healthMcp.id)" -Body @{
     identifierUris = @("api://$($healthMcp.appId)")
     api            = @{
@@ -296,6 +410,7 @@ $healthMcpSp = Get-OrCreateServicePrincipal $healthMcp.appId
 $reportApi = Get-OrCreateApplication $Names.ReportApi @{ signInAudience = 'AzureADMyOrg' }
 $roleIds = @($reportApi.appRoles | Where-Object { $_.value -eq 'Report.Generate' } | ForEach-Object { $_.id })
 $reportRoleId = if ($roleIds.Count -gt 0) { $roleIds[0] } else { [guid]::NewGuid().ToString() }
+Write-Step "Updating application $($Names.ReportApi) ($($reportApi.id)): identifierUris, api, appRoles"
 Invoke-Graph -Method PATCH -Uri "/applications/$($reportApi.id)" -Body @{
     identifierUris = @("api://$($reportApi.appId)")
     api            = @{ requestedAccessTokenVersion = 2 }
@@ -312,17 +427,43 @@ $reportApiSp = Get-OrCreateServicePrincipal $reportApi.appId
 
 # Demo CLI: public client for device code sign-in.
 $cli = Get-OrCreateApplication $Names.Cli @{ signInAudience = 'AzureADMyOrg'; isFallbackPublicClient = $true }
+Write-Step "Updating application $($Names.Cli) ($($cli.id)): isFallbackPublicClient, publicClient"
 Invoke-Graph -Method PATCH -Uri "/applications/$($cli.id)" -Body @{
     isFallbackPublicClient = $true
     publicClient           = @{ redirectUris = @('http://localhost') }
 } | Out-Null
 $cliSp = Get-OrCreateServicePrincipal $cli.appId
 
-# Blueprint as an OAuth2 API for OBO: access_as_user, CLI pre-authorized, idtyp claim.
+# Browser client: SPA redirect URIs only (auth code + PKCE), no secrets, no public-client or web platform.
+# Never looked up through Get-OrCreateApplication: only by stored SPA_APP_ID, or by name with the set tag.
+$spa = Find-SpaApplication
+$spaRedirects = Get-SpaRedirectUris $spa (Get-StoredValue 'CHAT_UI_URL' ${function:ConvertTo-HttpsOrigin})
+if (-not $spa) {
+    Write-Step "Creating application $($Names.Spa) (spa.redirectUris = $($spaRedirects -join ', '))"
+    $spa = Invoke-Graph -Method POST -Uri '/applications' -Body @{
+        displayName    = $Names.Spa
+        signInAudience = 'AzureADMyOrg'
+        tags           = @($SetTag)
+        notes          = 'Browser client for the owasp-agents-sample solution (solution/ui). Managed by solution/scripts/provision_agent_id.ps1.'
+        spa            = @{ redirectUris = $spaRedirects }
+    }
+}
+else {
+    Write-Step "Updating application $($Names.Spa) ($($spa.id)): spa.redirectUris = $($spaRedirects -join ', ')"
+    Invoke-Graph -Method PATCH -Uri "/applications/$($spa.id)" -Body @{ spa = @{ redirectUris = $spaRedirects } } | Out-Null
+}
+$spaSp = Get-OrCreateServicePrincipal $spa.appId
+# A new app replicates slowly; the Blueprint pre-authorization below fails until it is readable.
+for ($attempt = 1; -not (Get-Single "/applications?`$filter=appId eq '$($spa.appId)'"); $attempt++) {
+    if ($attempt -ge 6) { throw "$($Names.Spa) ($($spa.appId)) is not readable yet; rerun shortly." }
+    Start-Sleep -Seconds (5 * $attempt)
+}
+
+# Blueprint as an OAuth2 API for OBO: access_as_user, CLI and SPA pre-authorized, idtyp claim.
 $blueprint = Invoke-Graph -Method GET -Uri "/applications/$($blueprint.id)"
 $accessScopeId = Get-ScopeId $blueprint 'access_as_user'
 Write-Verbose "access_as_user scope id: $accessScopeId"
-Write-Step 'Configuring Blueprint API (access_as_user, pre-authorized CLI)'
+Write-Step "Updating Blueprint $($Names.Blueprint) ($($blueprint.id)): identifierUris, api (access_as_user), optionalClaims"
 $blueprintApi = @{
     requestedAccessTokenVersion = 2
     oauth2PermissionScopes      = @(@{
@@ -343,9 +484,25 @@ Invoke-Graph -Method PATCH -Uri "/applications/$($blueprint.id)" -Body @{
         accessToken = @(@{ name = 'idtyp'; source = $null; essential = $false; additionalProperties = @('include_user_token') })
     }
 } | Out-Null
-# The scope must exist before a pre-authorization can reference it; resend the whole api object.
-$blueprintApi.preAuthorizedApplications = @(@{ appId = $cli.appId; delegatedPermissionIds = @($accessScopeId) })
-Invoke-Graph -Method PATCH -Uri "/applications/$($blueprint.id)" -Body @{ api = $blueprintApi } | Out-Null
+# The scope must exist before a pre-authorization can reference it; resend the whole api object with both clients
+# in one PATCH, so neither entry is ever dropped.
+$blueprintApi.preAuthorizedApplications = @(
+    @{ appId = $cli.appId; delegatedPermissionIds = @($accessScopeId) },
+    @{ appId = $spa.appId; delegatedPermissionIds = @($accessScopeId) }
+)
+Write-Step "Updating Blueprint $($Names.Blueprint) ($($blueprint.id)): api.preAuthorizedApplications = $($Names.Cli), $($Names.Spa)"
+for ($attempt = 1; ; $attempt++) {
+    try {
+        Invoke-Graph -Method PATCH -Uri "/applications/$($blueprint.id)" -Body @{ api = $blueprintApi } | Out-Null
+        break
+    }
+    catch {
+        # A just-created SPA can still be unknown to the Blueprint's replica: Graph answers 400.
+        if ($_.Exception.Message -notmatch 'failed \(400\)' -or $attempt -ge 5) { throw }
+        Write-Verbose "Pre-authorization PATCH returned 400; retrying in $(10 * $attempt) s"
+        Start-Sleep -Seconds (10 * $attempt)
+    }
+}
 
 # Agent identities under the Blueprint.
 function Get-OrCreateAgentIdentity([string]$DisplayName) {
@@ -382,6 +539,7 @@ if (-not $grant) {
     } | Out-Null
 }
 elseif ($grant.scope.Trim() -ne 'Health.Read') {
+    Write-Step "Updating grant $($grant.id): chat agent scope on $($Names.HealthMcp) = Health.Read"
     Invoke-Graph -Method PATCH -Uri "/oauth2PermissionGrants/$($grant.id)" -Body @{ scope = 'Health.Read' } | Out-Null
 }
 
@@ -446,12 +604,13 @@ $ids = [ordered]@{
     HEALTH_MCP_APP_ID         = $healthMcp.appId
     REPORT_API_APP_ID         = $reportApi.appId
     CLI_APP_ID                = $cli.appId
+    SPA_APP_ID                = $spa.appId
     ALICE_OID                 = $alice.id
     BOB_OID                   = $bob.id
     ALICE_UPN                 = $alice.userPrincipalName
     BOB_UPN                   = $bob.userPrincipalName
 }
-$null = $cliSp, $blueprintPrincipal
+$null = $cliSp, $spaSp, $blueprintPrincipal
 
 foreach ($key in $ids.Keys) { Write-Output "$key=$($ids[$key])" }
 

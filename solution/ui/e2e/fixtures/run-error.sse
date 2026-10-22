@@ -1,0 +1,3 @@
+data: {"type":"RUN_STARTED","threadId":"t","runId":"r1"}
+
+data: {"type":"RUN_ERROR","code":"MiddlewareFailure","message":"blocked by policy"}

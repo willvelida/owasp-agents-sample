@@ -1,2 +1,5 @@
 # Hash-pinned policy files must have identical bytes on every platform.
 solution/policies/** text eol=lf
+# Shell scripts and nginx templates run in Linux containers built from this working tree (ACR remote builds).
+*.sh text eol=lf
+solution/ui/nginx/** text eol=lf

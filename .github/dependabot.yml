@@ -26,9 +26,21 @@ updates:
       actions:
         patterns: ["*"]
 
+  # Browser UI (S7). The cooldown mirrors .npmrc min-release-age=7, so fresh releases wait a week.
+  - package-ecosystem: npm
+    directory: "/solution/ui"
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      npm-minor-and-patch:
+        update-types: ["minor", "patch"]
+    open-pull-requests-limit: 10
+
   # Containerfiles (tag and digest pins) and Compose service images.
   - package-ecosystem: docker
-    directories: ["/starter", "/solution"]
+    directories: ["/starter", "/solution", "/solution/ui"]
     schedule:
       interval: weekly
 

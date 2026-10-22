@@ -1,0 +1,28 @@
+# chat-ui: static client on 8080 (non-root). The nginx image's envsubst renders ${CHAT_API_URL} at start; nginx
+# variables such as $uri are left alone because they are not environment variables.
+# add_header is not inherited into a location that sets its own, so every location repeats the full set.
+server {
+    listen 8080;
+    server_name _;
+    server_tokens off;
+    root /usr/share/nginx/html;
+
+    add_header Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self' https://login.microsoftonline.com ${CHAT_API_URL}; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; require-trusted-types-for 'script'" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "no-referrer" always;
+    add_header X-Content-Type-Options "nosniff" always;
+
+    location = /config.json {
+        alias /tmp/biotrackr/config.json;
+        default_type application/json;
+        add_header Cache-Control "no-store" always;
+        add_header Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self' https://login.microsoftonline.com ${CHAT_API_URL}; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; require-trusted-types-for 'script'" always;
+        add_header X-Frame-Options "DENY" always;
+        add_header Referrer-Policy "no-referrer" always;
+        add_header X-Content-Type-Options "nosniff" always;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

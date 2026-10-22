@@ -1,0 +1,17 @@
+data: {"type":"RUN_STARTED","threadId":"t","runId":"r1"}
+
+data: {"type":"TOOL_CALL_START","toolCallId":"c1","toolCallName":"get_sleep_by_date"}
+
+data: {"type":"TOOL_CALL_ARGS","toolCallId":"c1","delta":"{\"date\":"}
+
+data: {"type":"TOOL_CALL_ARGS","toolCallId":"c1","delta":"\"2026-10-19\"}"}
+
+data: {"type":"TOOL_CALL_END","toolCallId":"c1"}
+
+data: {"type":"TOOL_CALL_RESULT","messageId":"tr1","toolCallId":"c1","content":"{\"content\":[{\"type\":\"text\",\"text\":\"ignored\"}],\"structuredContent\":{\"items\":[{\"date\":\"2026-10-19\",\"sleep\":{\"minutesAsleep\":412,\"has_note\":true}}]}}"}
+
+data: {"type":"TEXT_MESSAGE_CONTENT","messageId":"m1","delta":"You slept 412 minutes."}
+
+data: {"type":"TEXT_MESSAGE_END","messageId":"m1"}
+
+data: {"type":"RUN_FINISHED","threadId":"t","runId":"r1","outcome":{"type":"success"}}

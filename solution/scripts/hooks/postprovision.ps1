@@ -1,6 +1,6 @@
 #Requires -Version 7.0
-# azd postprovision hook: let the Blueprint trust the managed identity (federated credential), and point the
-# local .env at the solution Foundry project.
+# azd postprovision hook: let the Blueprint trust the managed identity (federated credential), point the local .env at
+# the solution Foundry project, seed data, build the chart runner, create the kill switch, and set the SPA redirect URIs.
 $ErrorActionPreference = 'Stop'
 $scripts = Split-Path -Parent $PSScriptRoot
 $solution = Split-Path -Parent $scripts
@@ -31,4 +31,9 @@ if (-not $?) { exit 1 }
 
 # ASI10: create the kill switch (off) if it is missing; never reset an engaged one.
 & (Join-Path $PSScriptRoot 'kill_switch.ps1')
+if (-not $?) { exit 1 }
+
+# Browser client: add the deployed chat-ui URL to the SPA redirect URIs (the hostname exists only after Bicep). Last on
+# purpose, so a failure here never skips the steps above. Warns and continues when SPA_APP_ID or CHAT_UI_URL is unset.
+& (Join-Path $scripts 'provision_agent_id.ps1') -TenantId $tenant -SpaRedirectUri -UseDeviceCode
 if (-not $?) { exit 1 }

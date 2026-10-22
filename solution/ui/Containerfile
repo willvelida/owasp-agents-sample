@@ -1,0 +1,23 @@
+# chat-ui: build the Vue client in a pinned Node stage, serve it from non-root nginx with strict headers.
+# Images are pinned by digest; Dependabot's docker ecosystem bumps them.
+
+# node:24.22.0-alpine (multi-arch index)
+FROM docker.io/library/node:24.22.0-alpine@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f AS build
+WORKDIR /app
+COPY package.json package-lock.json .npmrc ./
+# Supply chain: exact lockfile, no install scripts.
+RUN npm ci --ignore-scripts --no-audit --no-fund
+COPY index.html vite.config.ts tsconfig.json tsconfig.node.json env.d.ts ./
+COPY src ./src
+RUN npm run build
+
+# nginxinc/nginx-unprivileged:stable-alpine (multi-arch index); runs as uid 101 and listens on 8080.
+FROM docker.io/nginxinc/nginx-unprivileged:stable-alpine@sha256:f5116ed4606f3eb015dd4a8e28cb9b351476dc0ad4bc6e9f93b19cec130cdf03
+USER root
+COPY nginx/default.conf.template /etc/nginx/templates/default.conf.template
+COPY nginx/15-biotrackr-config.sh /docker-entrypoint.d/15-biotrackr-config.sh
+RUN chmod 0755 /docker-entrypoint.d/15-biotrackr-config.sh \
+    && chmod 0644 /etc/nginx/templates/default.conf.template
+COPY --from=build /app/dist /usr/share/nginx/html
+USER 101
+EXPOSE 8080

@@ -1,0 +1,17 @@
+data: {"type":"RUN_STARTED","threadId":"t","runId":"r1"}
+
+data: {"type":"TOOL_CALL_START","toolCallId":"c1","toolCallName":"generate_report"}
+
+data: {"type":"TOOL_CALL_ARGS","toolCallId":"c1","delta":"{\"request\":\"Make a bar chart of my daily steps\",\"data\":[{\"label\":\"2026-10-13\",\"value\":7939}]}"}
+
+data: {"type":"TOOL_CALL_END","toolCallId":"c1"}
+
+data: {"type":"CUSTOM","name":"function_approval_request","value":{"id":"c1","function_call":{"call_id":"c1","name":"generate_report","arguments":{"request":"Make a bar chart of my daily steps"}}}}
+
+data: {"type":"TOOL_CALL_START","toolCallId":"c2","toolCallName":"confirm_changes"}
+
+data: {"type":"TOOL_CALL_ARGS","toolCallId":"c2","delta":"{}"}
+
+data: {"type":"TOOL_CALL_END","toolCallId":"c2"}
+
+data: {"type":"RUN_FINISHED","threadId":"t","runId":"r1","outcome":{"type":"interrupt","interrupts":[{"id":"int-1","reason":"tool_approval","responseSchema":{"type":"object"},"metadata":{"agent_framework":{"function_call":{"call_id":"c1","name":"generate_report","arguments":"{\"request\":\"Make a bar chart of my daily steps\",\"data\":[{\"label\":\"2026-10-13\",\"value\":7939}]}"}}}}]}}
