@@ -16,6 +16,59 @@ Run PowerShell commands from the repository root unless a block changes director
 Use separate terminals for presentation and long-running validation. Do not run a
 fault-injecting scorecard during a live demo.
 
+## Teardown and rebuild
+
+Tear the solution's Azure environment down between talks to save costs, and
+rebuild it at least a day before the next one. Run both from `solution\` with
+the host Azure CLI logged in to the demo subscription. Both run azd hooks that
+change Entra objects, so get operator approval first (see the
+[scripts README](../solution/scripts/README.md#prerequisites)).
+
+```powershell
+Set-Location solution
+azd down --purge
+Set-Location ..
+```
+
+* The `predown` hook signs in to Microsoft Graph by device code and removes the
+  Blueprint's federated credential for this environment's managed identity. If
+  it fails, `azd down` stops and deletes nothing; fix the cause and run it again.
+* `--purge` permanently deletes the soft-deleted Foundry account and App
+  Configuration store, so the rebuild can reuse their names. Without it, the
+  next `azd up` fails on a name conflict.
+* `azd down` deletes everything in `rg-owasp-agents`, including the seeded
+  Cosmos DB data, chat history, and the audit log.
+* It does not touch the Entra objects or test users, the azd environment values
+  (including the A2A key pair), or the starter model in
+  `rg-owasp-agents-starter-model`. The starter model is pay-per-token, so it
+  costs almost nothing while idle; to remove it too, follow the
+  [starter model teardown](../starter/model/README.md#teardown).
+* While the environment is down, `solution-local` and `solution-offline` also
+  stop working: they use the solution's Foundry model. The starter still works.
+
+To rebuild:
+
+```powershell
+Set-Location solution
+azd up
+Set-Location ..
+```
+
+* Allow enough time and stay at the keyboard: the hooks sign in to Microsoft
+  Graph by device code more than once, and images build in ACR. Record how long
+  the rebuild takes the first time, and plan around that.
+* The hooks reseed Cosmos DB, rebuild the chart runner image, add a federated
+  credential for the new managed identity, and set the browser redirect URI.
+* The kill switch is recreated as `off`, because the store was deleted with its
+  value. Check it during the pre-show checks as usual.
+* Resource names come from the subscription, environment name, and region, so
+  they stay the same, including the App Configuration name in the pre-show
+  commands below.
+* The browser client's URL changes, because the Container Apps environment gets
+  a new default domain. Read `CHAT_UI_URL` again and sign alice and bob in at
+  the new URL (see [Browser pre-show](#browser-pre-show-solution-segment)).
+* Then run the full pre-show checklist, including the warm-up chats.
+
 ## Pre-show checklist
 
 * Check the host clock, timezone, and sleep state before the show and after any

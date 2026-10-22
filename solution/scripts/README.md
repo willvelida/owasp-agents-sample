@@ -12,6 +12,7 @@ ms.topic: how-to
 | [provision_agent_id.ps1](provision_agent_id.ps1) | You, or the azd hooks        | Creates or reuses the Entra Agent ID objects, grants, and test users    |
 | [hooks/preprovision.ps1](hooks/preprovision.ps1) | azd `preup`, `preprovision`  | Provisions Agent ID, stores typed IDs and the signing key pair, builds the chart runner when ACR exists |
 | [hooks/postprovision.ps1](hooks/postprovision.ps1) | azd `postprovision`          | Adds the federated credential, seeds Cosmos, configures the chart runner, creates a missing kill-switch key, and sets the SPA redirect URIs |
+| [hooks/predown.ps1](hooks/predown.ps1)       | azd `predown`                | Removes the federated credential for this environment's managed identity before `azd down` deletes it |
 | [seed.ps1](seed.ps1)                         | `postprovision` hook         | Seeds Azure Cosmos DB by alice and bob's object ids with your Entra login |
 
 ## Prerequisites
@@ -75,7 +76,7 @@ The Azure sidecar authenticates as the Blueprint with `SignedAssertionFromManage
 ./scripts/provision_agent_id.ps1 -TenantId <tenant-id> -ManagedIdentityPrincipalId <oid> -RemoveFederatedCredential -UseDeviceCode
 ```
 
-The azd `postprovision` hook runs the first command. Run the second after `azd down` of a verification environment so the shared Blueprint does not keep trusting a deleted identity.
+The azd `postprovision` hook runs the first command, and the `predown` hook runs the second before `azd down` deletes the identity, so the shared Blueprint never keeps trusting a deleted identity. Run the second yourself only if an environment was removed without `azd down`, for example by deleting its resource group.
 
 ## SPA redirect URIs
 
