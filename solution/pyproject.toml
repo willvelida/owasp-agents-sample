@@ -22,7 +22,7 @@ dependencies = [
     "aiohttp==3.14.5",
     "pyyaml==6.0.3",
     "a2a-sdk[http-server]==1.2.3",
-    "azure-appconfiguration==1.7.2",
+    "azure-appconfiguration==1.10.0",
     # ASI07: Ed25519 A2A signing (report_agent/a2a_security.py), the same primitive agentmesh uses.
     "cryptography==49.0.0",
 ]
@@ -37,7 +37,7 @@ dev = [
 chart = [
     "matplotlib==3.11.2",
     "numpy==2.5.4",
-    "starlette==1.8.0",
+    "starlette==1.9.0",
     "uvicorn==0.54.0",
 ]
 
