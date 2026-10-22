@@ -1,0 +1,6 @@
+node_modules/
+dist/
+public/config.json
+test-results/
+playwright-report/
+e2e/fixtures/

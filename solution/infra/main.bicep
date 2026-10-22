@@ -37,6 +37,7 @@ param spaAppId string
 param chatApiExists bool = false
 param healthMcpExists bool = false
 param reportAgentExists bool = false
+param chatUiExists bool = false
 @description('Chart runner image in ACR, set by the postprovision hook (CHART_RUNNER_IMAGE). Empty on a fresh environment.')
 param chartRunnerImage string = ''
 @secure()
@@ -178,6 +179,25 @@ module chatApi 'modules/chat_api.bicep' = {
   }
 }
 
+// The browser client. Its FQDN is chat-ui.<environment default domain>, which equals chatUiOrigin, the only origin
+// chat-api's CORS middleware allows; the CHAT_UI_URL output is that same string.
+module chatUi 'modules/chat_ui.bicep' = {
+  scope: rg
+  name: 'chat-ui'
+  params: {
+    location: location
+    tags: tags
+    environmentId: core.outputs.containerAppsEnvironmentId
+    identityId: core.outputs.uiIdentityId
+    registryServer: core.outputs.registryLoginServer
+    exists: chatUiExists
+    tenantId: tenantId
+    spaAppId: spaAppId
+    blueprintAppId: blueprintAppId
+    chatApiUrl: chatApi.outputs.url
+  }
+}
+
 output AZURE_LOCATION string = location
 output AZURE_TENANT_ID string = tenant().tenantId
 output AZURE_RESOURCE_GROUP string = rg.name
@@ -188,6 +208,9 @@ output FOUNDRY_PROJECT_ENDPOINT string = core.outputs.foundryProjectEndpoint
 output FOUNDRY_MODEL string = modelName
 output COSMOS_ENDPOINT string = core.outputs.cosmosEndpoint
 output CHAT_API_URL string = chatApi.outputs.url
+// Read by the postprovision hook (provision_agent_id.ps1 -SpaRedirectUri) to add the Azure SPA redirect URI.
+output CHAT_UI_URL string = chatUiOrigin
+output CHAT_UI_FQDN_URL string = chatUi.outputs.url
 output HEALTH_MCP_INTERNAL_URL string = healthMcp.outputs.url
 output REPORT_AGENT_INTERNAL_URL string = reportAgent.outputs.url
 output AZURE_CONTAINER_REGISTRY_NAME string = core.outputs.registryName
