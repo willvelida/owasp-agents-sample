@@ -65,6 +65,23 @@ npm run build
 
 `npm test` runs Vitest with jsdom. It covers the transport, the reducer, config validation, thread pinning, and component rendering, including HTML and markdown payloads rendered as text.
 
+### Browser smoke tests (Playwright)
+
+```powershell
+npx playwright install chromium   # once per machine
+npm run e2e
+```
+
+[playwright.config.ts](playwright.config.ts) builds a test-mode bundle (`npm run build:e2e`, Vite mode `e2e`, output `dist-e2e/`) and serves it with `vite preview`. In that mode, [src/auth-stub.ts](src/auth-stub.ts) replaces MSAL with a stub `AuthProvider` that returns a fake token, so the suite never touches Entra or a password. `/config.json` and every chat-api call are routed to the committed fixtures in [e2e/fixtures/](e2e/fixtures/). The specs cover:
+
+* a normal answer, and a tool call with its raw result
+* an approval interrupt and its decision-only resume (the request body is asserted)
+* `RUN_ERROR`, a kill-switch refusal, and a 401
+* the poisoned note: no `img` or `a` elements, and no request to `attacker.example`
+* the bearer going only to chat-api, with nothing in `localStorage`
+
+A production build never contains the stub: `import.meta.env.MODE` is replaced at build time and the import is dropped. To check, search `dist/` after `npm run build` for the marker `biotrackr-e2e-stub-auth-provider`; it should return no matches.
+
 ## Container image
 
 [Containerfile](Containerfile) builds the client in a digest-pinned `node:24.22.0-alpine` stage. It then serves `dist/` from digest-pinned `nginx-unprivileged` as uid 101 on port 8080.

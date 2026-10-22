@@ -21,7 +21,11 @@ async function start(): Promise<void> {
   let provider: AuthProvider;
   try {
     // The provider is chosen before the app exists; components only ever see the AuthProvider interface.
-    provider = await MsalAuthProvider.create(config);
+    // Vite replaces import.meta.env.MODE at build time, so production bundles drop the e2e stub entirely.
+    provider =
+      import.meta.env.MODE === "e2e"
+        ? new (await import("./auth-stub")).StubAuthProvider()
+        : await MsalAuthProvider.create(config);
   } catch {
     fail(root, "Sign-in could not start. Reload the page to try again.");
     return;

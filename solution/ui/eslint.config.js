@@ -9,7 +9,7 @@ const htmlSinks = ["innerHTML", "outerHTML", "insertAdjacentHTML"];
 const sinkMessage = "Render data only through {{ }} interpolation; HTML sinks are banned (XSS).";
 
 export default tseslint.config(
-  { ignores: ["dist/", "node_modules/", "test-results/", "playwright-report/", "coverage/"] },
+  { ignores: ["dist/", "dist-e2e/", "node_modules/", "test-results/", "playwright-report/", "coverage/"] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   ...pluginVue.configs["flat/recommended"],

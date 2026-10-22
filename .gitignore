@@ -232,6 +232,7 @@ pyrit_results/
 
 # Browser client (solution/ui)
 node_modules/
+dist-e2e/
 test-results/
 playwright-report/
 solution/ui/public/config.json
