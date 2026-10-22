@@ -2,6 +2,7 @@ import { createApp } from "vue";
 import App from "./App.vue";
 import { AUTH_KEY, MsalAuthProvider, type AuthProvider } from "./auth";
 import { CONFIG_KEY, loadConfig, type RuntimeConfig } from "./config";
+import { stripAuthParams } from "./url";
 import "./style.css";
 
 function fail(root: HTMLElement, message: string): void {
@@ -30,6 +31,7 @@ async function start(): Promise<void> {
     fail(root, "Sign-in could not start. Reload the page to try again.");
     return;
   }
+  stripAuthParams();
   createApp(App).provide(CONFIG_KEY, config).provide(AUTH_KEY, provider).mount(root);
 }
 

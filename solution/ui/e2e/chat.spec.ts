@@ -8,6 +8,13 @@ test.describe("chat smoke (stub sign-in, recorded streams)", () => {
     await expect(page.getByRole("banner")).toContainText("Signed in as Alice Example (alice@e2e.invalid)");
   });
 
+  test("removes OAuth redirect parameters from the address bar", async ({ page }) => {
+    await routeChat(page, []);
+    await page.goto("/?state=eyJpZCI6InRlc3QifQ&keep=1");
+    await expect(page.getByRole("banner")).toContainText("Signed in as");
+    expect(new URL(page.url()).search).toBe("?keep=1");
+  });
+
   test("renders a normal answer", async ({ page }) => {
     const routes = await routeChat(page, [{ body: fixture("answer.sse") }]);
     await page.goto("/");

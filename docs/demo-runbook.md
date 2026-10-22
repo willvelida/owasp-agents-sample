@@ -89,9 +89,8 @@ talk, because the browser's refresh token lasts at most 24 hours.
 * Keep both windows open until the talk. MSAL keeps tokens in session storage
   per tab, so closing a window ends its session.
 * Close developer tools before presenting, and never show storage or network
-  panels. After a sign-in or sign-out redirect the address bar can show
-  `?state=eyJ...`. That is MSAL's state parameter, not a token, but reload
-  `CHAT_UI_URL` to clear it before presenting.
+  panels. The client removes MSAL's `?state=...` from the address bar after a
+  redirect; it is not a token, and if it ever remains, reload `CHAT_UI_URL`.
 * Keep the CLI warm-ups above: the CLI is the starter client and the recovery
   path for the solution segment.
 
