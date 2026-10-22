@@ -67,3 +67,9 @@ hooks:
     run: ./scripts/hooks/postprovision.ps1
     interactive: true
     continueOnError: false
+  # Remove that federated credential before `azd down` deletes the managed identity. Entra objects are kept.
+  predown:
+    shell: pwsh
+    run: ./scripts/hooks/predown.ps1
+    interactive: true
+    continueOnError: false
