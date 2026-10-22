@@ -57,6 +57,10 @@ jobs:
       fail-fast: false
       matrix:
         project: [starter, solution, client, redteam]
+        include:
+          # The browser client; its path has a slash, so the artefact name is set explicitly.
+          - project: solution/ui
+            artifact: sbom-solution-ui.spdx.json
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -65,7 +69,7 @@ jobs:
         with:
           path: ${{ matrix.project }}
           format: spdx-json
-          artifact-name: sbom-${{ matrix.project }}.spdx.json
+          artifact-name: ${{ matrix.artifact || format('sbom-{0}.spdx.json', matrix.project) }}
           # Submitting to the dependency graph needs contents: write; the artefact is the evidence here.
           dependency-snapshot: false
 
@@ -85,6 +89,89 @@ jobs:
             exit 1
           fi
           echo "no local_issuer reference in solution/infra or solution/azure.yaml"
+      # The Agent Framework DevUI is a local debugging UI with no auth; it must never be deployed.
+      - name: DevUI is absent from infra/ and azure.yaml
+        run: |
+          if grep -rniE 'devui' solution/infra solution/azure.yaml; then
+            echo "::error::DevUI is referenced by Azure infrastructure"
+            exit 1
+          fi
+          echo "no DevUI reference in solution/infra or solution/azure.yaml"
+
+  web:
+    name: browser UI (lint, types, tests, e2e, headers)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: solution/ui
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.22.0
+      # Exact lockfile, no install scripts; .npmrc enforces the engine and the 7-day release cooldown.
+      - name: npm ci
+        run: npm ci --ignore-scripts
+      - name: lint (XSS bans included)
+        run: npm run lint
+      - name: typecheck
+        run: npm run typecheck
+      - name: unit and component tests
+        run: npm test
+      - name: production build
+        run: npm run build
+      # The e2e stub AuthProvider must never ship.
+      - name: production build has no e2e stub
+        run: |
+          if grep -rq 'biotrackr-e2e-stub-auth-provider' dist; then
+            echo "::error::the e2e stub AuthProvider is in the production build"
+            exit 1
+          fi
+          echo "dist/ has no e2e stub"
+      - name: Playwright browser
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Playwright smoke tests
+        run: npm run e2e
+      - name: Playwright report
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report
+          path: solution/ui/playwright-report
+          retention-days: 7
+      # nginx sets the CSP and the other headers; vite preview does not, so check the real image.
+      - name: Image serves the security headers
+        run: |
+          docker build -f Containerfile -t chat-ui:ci .
+          docker run -d --name chat-ui -p 127.0.0.1:8080:8080 \
+            -e TENANT_ID=00000000-0000-4000-8000-000000000001 \
+            -e SPA_APP_ID=00000000-0000-4000-8000-000000000002 \
+            -e BLUEPRINT_APP_ID=00000000-0000-4000-8000-000000000003 \
+            -e CHAT_API_URL=https://chat-api.example.invalid \
+            chat-ui:ci
+          for _ in $(seq 1 20); do curl -fs -o /dev/null http://127.0.0.1:8080/ && break; sleep 1; done
+          root="$(curl -fsSI http://127.0.0.1:8080/)"
+          config="$(curl -fsSI http://127.0.0.1:8080/config.json)"
+          printf '%s\n' "${root}"
+          expect() {
+            if ! printf '%s\n' "$1" | grep -qiF "$2"; then
+              echo "::error::missing header: $2"
+              exit 1
+            fi
+          }
+          expect "${root}" "content-security-policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self' https://login.microsoftonline.com https://chat-api.example.invalid; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; require-trusted-types-for 'script'"
+          expect "${root}" "x-frame-options: DENY"
+          expect "${root}" "referrer-policy: no-referrer"
+          expect "${root}" "x-content-type-options: nosniff"
+          expect "${config}" "cache-control: no-store"
+          test "$(docker exec chat-ui id -u)" != "0"
+          curl -fs http://127.0.0.1:8080/config.json | python3 -c 'import json, sys; c = json.load(sys.stdin); assert sorted(c) == ["blueprintAppId", "chatApiUrl", "spaAppId", "tenantId"], c'
+      - name: Stop the image
+        if: always()
+        run: docker rm -f chat-ui || true
 
   stack:
     name: offline stack (mcp-scan, ASI07 red team)

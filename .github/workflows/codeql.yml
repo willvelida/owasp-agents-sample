@@ -1,5 +1,5 @@
-# ASI04 (S5): CodeQL static analysis of the Python code and of these workflows. Needs code scanning, which is
-# available on public repositories (or with GitHub Advanced Security on private ones).
+# ASI04 (S5): CodeQL static analysis of the Python code, the browser UI (TypeScript and Vue), and these workflows.
+# Needs code scanning, which is available on public repositories (or with GitHub Advanced Security on private ones).
 name: codeql
 
 on:
@@ -24,7 +24,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [python, actions]
+        language: [python, actions, javascript-typescript]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
