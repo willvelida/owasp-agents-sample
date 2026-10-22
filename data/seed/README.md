@@ -1,7 +1,7 @@
 ---
 title: Seed data
 description: Synthetic Biotrackr health data for alice and bob, including the poisoned food note and the cross-tenant canary used by the live demos
-ms.date: 2026-10-19
+ms.date: 2026-10-23
 ms.topic: reference
 ---
 
@@ -19,6 +19,20 @@ Synthetic health data for two users, `alice` and `bob`, covering 30 days (2026-0
 
 > [!CAUTION]
 > The data is fictional. Two documents contain deliberate attack artefacts for the talk. Do not reuse them outside this sample.
+
+Use dates inside 2026-09-29 to 2026-10-28 in your prompts. Relative phrases such as "this week" only find data while the current date falls in that range. For example, on 2026-10-19 alice slept 412 minutes and bob 352.
+
+## Loading and reseeding
+
+Both stacks load the same files, but key them differently:
+
+| Stack | Loaded by | Partition key value |
+|-------|-----------|---------------------|
+| Starter | The `seed` Compose service | The user's name (`alice`, `bob`), which is why any caller can ask for `bob` |
+| Solution, local | The `seed` Compose service | Each user's Entra object id from `ALICE_OID` and `BOB_OID` in `solution/.env` |
+| Solution, Azure | [seed.ps1](../../solution/scripts/seed.ps1), run by the `postprovision` hook with your Entra login | The same object ids, from the azd environment |
+
+Reseeding (`podman compose run --rm seed` in `starter/` or `solution/`) upserts every document in these files, so it restores records an attack deleted or changed. It does not delete anything else: conversation history, audit records, and any documents an attack added stay in place. To start from empty data locally, run `podman compose down -v`, which also drops every other volume for that stack.
 
 ## Attack artefacts
 

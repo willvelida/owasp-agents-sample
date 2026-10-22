@@ -1,7 +1,7 @@
 ---
 title: Solution scripts
 description: Entra Agent ID provisioning, azd hooks, and Azure seeding for the Biotrackr solution
-ms.date: 2026-10-22
+ms.date: 2026-10-23
 ms.topic: how-to
 ---
 
@@ -22,12 +22,23 @@ that may invoke them. They can change Entra objects, build images in ACR, seed
 data, and update Azure configuration. See the [demo runbook](../../docs/demo-runbook.md)
 for read-only pre-show checks instead.
 
+Provisioning writes real objects into your Entra tenant: an Agent Identity Blueprint, two agent identities, four app registrations, and two test users with passwords. The `azd up` that runs these hooks also creates billed Azure resources. Use a tenant and subscription where that is acceptable, and see [Remove everything](#remove-everything) for cleanup.
+
 * PowerShell 7 with `Microsoft.Graph.Authentication` (`Install-Module Microsoft.Graph.Authentication -Scope CurrentUser`)
 * Agent ID Developer or Agent ID Administrator, plus User Administrator, in the tenant
 * One-time tenant-wide admin consent for Microsoft Graph Command Line Tools, granted by a Global Administrator or Privileged Role Administrator, covering:
   `AgentIdentityBlueprint.Create`, `AgentIdentityBlueprint.ReadWrite.All`, `AgentIdentityBlueprintPrincipal.Create`, `AgentIdentity.Create.All`, `Application.ReadWrite.All`, `DelegatedPermissionGrant.ReadWrite.All`, `AppRoleAssignment.ReadWrite.All`, `User.ReadWrite.All`
 
 The script checks the token's scopes first and exits with the missing list. It also refuses a token that carries `Directory.AccessAsUser.All`, because Agent ID APIs reject it. Azure CLI tokens carry that scope, which is why the script uses the Microsoft Graph Command Line Tools client instead of `az`.
+
+The solution uses four separate sign-ins, and each one is easy to mistake for another:
+
+| Sign-in | Who | Used by |
+|---------|-----|---------|
+| Graph device code | You, as a tenant administrator | `provision_agent_id.ps1` and the azd hooks that call it |
+| `az login` on the host | You | `azd`, `seed.ps1`, and the red team's `--judge` model calls |
+| `podman compose --profile login run --rm az-login` | You | Local containers reaching Foundry, cached in the `azcli-cache` volume |
+| CLI or browser device code | `biotrackr-alice` or `biotrackr-bob` | Chatting with the solution |
 
 ## Provision Agent ID
 
@@ -42,9 +53,9 @@ The script is idempotent, so a second run creates nothing. It creates:
 |---------------------------------|--------------------------------|----------------------------------------------------------------|
 | `biotrackr-blueprint`           | Agent Identity Blueprint + principal | `api://{appId}`, scope `access_as_user`, v2 tokens, `idtyp` claim |
 | `biotrackr-owasp-chat-agent`    | Agent identity                 | Delegated `Health.Read` on the MCP API; `Report.Generate` role |
-| `biotrackr-report-agent`        | Agent identity                 | No grants until S3                                             |
+| `biotrackr-report-agent`        | Agent identity                 | No grants; the report agent accepts only callers that present the chat agent's `Report.Generate` token |
 | `biotrackr-health-mcp`          | App registration               | Delegated scope `Health.Read`, v2 tokens                       |
-| `biotrackr-report-api`          | App registration               | App role `Report.Generate` (used from S3)                      |
+| `biotrackr-report-api`          | App registration               | App role `Report.Generate`, assigned to the chat agent         |
 | `biotrackr-demo-cli`            | Public client                  | Pre-authorized on the Blueprint's `access_as_user`             |
 | `biotrackr-demo-spa`            | Single-page app (browser UI)   | Tagged `biotrackr-blueprint`; SPA redirect URIs only, no secrets; pre-authorized next to the CLI |
 | `biotrackr-alice`, `biotrackr-bob` | Test users                  | Passwords in `.secrets/test-users.txt` only                    |
@@ -97,3 +108,14 @@ The `chat-ui` hostname exists only after Bicep runs, so the `postprovision` hook
 ## Seed Azure Cosmos DB
 
 The `postprovision` hook runs [seed.ps1](seed.ps1) after the federated credential step (azd 1.34 skips the project `postdeploy` hook during `azd up`). It reads `COSMOS_ENDPOINT`, `ALICE_OID`, and `BOB_OID` from the azd environment and runs `python -m seed` with your Entra login. The account has local auth disabled, and Bicep assigns you the Cosmos DB Built-in Data Contributor role.
+
+## Remove everything
+
+`azd down --purge` deletes the solution's Azure resources, and its `predown` hook removes the federated credential first. It deliberately keeps the Entra objects and test users so the next `azd up` can reuse them. No script in this repository deletes those objects. When you are finished with the sample:
+
+1. Run `azd down --purge` from `solution/`, so the federated credential is removed while the managed identity still exists.
+2. In the Microsoft Entra admin center, delete the test users `biotrackr-alice` and `biotrackr-bob`, the agent identities `biotrackr-owasp-chat-agent` and `biotrackr-report-agent`, the `biotrackr-blueprint` Agent Identity Blueprint, and the app registrations `biotrackr-health-mcp`, `biotrackr-report-api`, `biotrackr-demo-cli`, and `biotrackr-demo-spa`. Deleting needs the same roles as creating them.
+3. Delete the local state: `solution/.env`, `solution/.secrets/`, and the azd environment (`azd env list`, then remove its folder under `solution/.azure/`).
+4. Delete the starter's model separately with [starter/model/README.md](../../starter/model/README.md#teardown).
+
+If you used a different `-Prefix`, replace `biotrackr` in the names above.

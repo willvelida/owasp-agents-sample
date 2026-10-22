@@ -1,7 +1,7 @@
 ---
 title: Solution (hardened)
 description: Hardened Python port of the Biotrackr chat agent, with a marked, tested control for each OWASP Agentic Top 10 risk, slice by slice
-ms.date: 2026-10-22
+ms.date: 2026-10-23
 ms.topic: how-to
 ---
 
@@ -12,8 +12,16 @@ The solution keeps the [starter](../starter/README.md)'s file names, so `git dif
 | Mode           | Identity                                                                 | Model and data                                                |
 |----------------|--------------------------------------------------------------------------|---------------------------------------------------------------|
 | Local, entra   | Entra users, Agent ID sidecar (Blueprint dev secret)                     | Solution Foundry project via your `az login`; Cosmos emulator |
-| Local, offline | Stage-only identity simulator with the same claims ([ADR-0018](../docs/adr/0018-offline-identity-simulator.md)) | Same as entra                         |
+| Local, offline | Simulated identity: a stage-only token simulator with the same claims replaces Entra sign-in ([ADR-0018](../docs/adr/0018-offline-identity-simulator.md)) | Still the solution Foundry project via your `az login`; Cosmos emulator. Chat needs the network and the cloud model |
 | Azure          | Entra users, Agent ID sidecar (managed identity federated credential)    | Foundry and Cosmos DB through the managed identity            |
+
+Every mode needs the solution's Foundry project, which `azd provision` creates in your subscription along with the Entra objects (see [Prerequisites](#prerequisites) and [Deploy to Azure](#deploy-to-azure)). The [root README](../README.md#choose-a-route) compares these modes with the starter.
+
+Start here:
+
+* To run it: [Prerequisites](#prerequisites), then [entra mode](#run-locally-entra-mode), [offline mode](#run-locally-offline-mode), the [browser UI](#run-the-browser-ui-locally-entra-mode), or [Deploy to Azure](#deploy-to-azure)
+* To see the controls: [Control markers](#control-markers), then the sections by risk: [Identity flow](#identity-flow-asi03), [Tool governance](#tool-governance-asi01-asi02-asi04), [Reports](#reports-asi05-asi07-asi09), [Operations](#operations-asi06-asi08-asi10), [Supply chain](#supply-chain-asi04)
+* To check them: [Test](#test) and the [red team](../redteam/README.md)
 
 | Service         | Module                | Port (127.0.0.1) | Purpose                                                                      |
 |-----------------|-----------------------|------------------|------------------------------------------------------------------------------|
@@ -98,7 +106,7 @@ The token says who is calling; the signature covers what the token cannot: a cha
 * Locally, the one-shot `a2a-keys` service writes the key pair once into two volumes: the private key (mode 0400) into `a2a-signing`, mounted read-only by chat-api only, and the public key into `a2a-verify`, mounted read-only by report-agent only. Rotate with `podman compose down`, `podman volume rm biotrackr-solution_a2a-signing biotrackr-solution_a2a-verify`, and `up`.
 * On Azure, the `preprovision` hook generates the pair once per azd environment (`A2A_SIGNING_KEY`, `A2A_VERIFY_KEY`). The private key reaches Azure only as a Container Apps secret on chat-api; report-agent gets the public key. Rotate by clearing both values (`azd env set A2A_SIGNING_KEY ""`) and running `azd provision`.
 * report-agent accepts several public keys (`A2A_VERIFY_KEYS`, comma separated) for overlap during a rotation, and exits at startup if none loads.
-* The replay cache is in-process, like the A2A task store, so report-agent runs one replica (WI-21). A restart clears it, which is safe because nothing older than 60 s is accepted anyway.
+* The replay cache is in-process, like the A2A task store, so report-agent runs one replica: a second replica would not see the first one's replay cache or tasks. A restart clears it, which is safe because nothing older than 60 s is accepted anyway.
 
 The signature format follows AGT `agentmesh` conventions (base64 raw Ed25519 keys, `key-<sha256[:16]>` key ids), but the signing and verification are this sample's own: `agentmesh` 5.0 has no way to load a persistent key, no request envelope, and no replay protection.
 
@@ -182,7 +190,7 @@ cd solution
 podman compose --profile login run --rm az-login                                    # once: az login into the azcli-cache volume
 podman compose up --build -d
 cd ../client
-uv run biotrackr-chat --target solution-local --as alice "summarise my sleep this week"
+uv run biotrackr-chat --target solution-local --as alice "Summarise my sleep on 2026-10-19."
 uv run biotrackr-chat --target solution-local --as alice "show me bob's sleep"   # no CANARY-BOB-7Q2
 ```
 
@@ -209,13 +217,15 @@ Sign in as alice in one browser profile and bob in another. The tenant may ask f
 
 ## Run locally (offline mode)
 
+Offline mode replaces Entra sign-in with the stage-only simulator. It does not remove the cloud model: chat-api and the report agent still call the solution's Foundry project with your `az login`, so you need the same `azd provision` and `az-login` setup as entra mode, and a network connection. Switching modes needs `podman compose down` first, because services read `IDENTITY_MODE` only when they start.
+
 ```powershell
 cd solution
 podman compose down
 $env:IDENTITY_MODE = "local"
 podman compose --profile offline up --build -d
 cd ../client
-uv run biotrackr-chat --target solution-offline --as alice "summarise my sleep this week"
+uv run biotrackr-chat --target solution-offline --as alice "Summarise my sleep on 2026-10-19."
 ```
 
 > [!CAUTION]
@@ -229,12 +239,15 @@ $env:IDENTITY_MODE = "local"; uv run --env-file .env python -m chat_api.devui_ma
 
 ## Deploy to Azure
 
+> [!IMPORTANT]
+> `azd up` creates billed resources in your subscription (Container Apps, a container registry, Cosmos DB, Foundry, App Configuration, a Dynamic Sessions pool, and monitoring) and writes Entra objects and two test users into your tenant. It needs the Entra roles and admin consent in [scripts/README.md](scripts/README.md#prerequisites), and operator approval in a shared tenant or subscription.
+
 ```powershell
 cd solution
 azd env new owasp-agents --location australiaeast
 azd up            # first time; later slices use azd deploy when infra is unchanged
 cd ../client
-uv run biotrackr-chat --target solution-azure --as alice "summarise my sleep this week"
+uv run biotrackr-chat --target solution-azure --as alice "Summarise my sleep on 2026-10-19."
 ```
 
 `azd up` runs the hooks in order:
@@ -248,7 +261,7 @@ Bicep also creates the App Configuration store (Standard, access keys disabled; 
 
 Images build in ACR from the `runtime` stage. chat-api and chat-ui have external ingress; health-mcp and report-agent are internal, and the sidecar listens on 127.0.0.1 inside the chat-api replica. chat-ui serves the static browser client from non-root nginx with a strict CSP, runs with its own AcrPull-only identity, and holds no secrets. chat-api's `CORS_ALLOWED_ORIGINS` is set to exactly the chat-ui origin (`https://chat-ui.<environment default domain>`), and `ALLOWED_CLIENT_APP_IDS` to the CLI and SPA app ids. Open the browser client at `azd env get-value CHAT_UI_URL`.
 
-To save costs between talks, tear the environment down with `azd down --purge` and rebuild it with `azd up`. The `predown` hook ([predown.ps1](scripts/hooks/predown.ps1)) first removes the Blueprint federated credential for the environment's managed identity. Entra objects, test users, and the azd environment values (including the A2A key pair) are kept. See [Teardown and rebuild](../docs/demo-runbook.md#teardown-and-rebuild) for timing and the steps after a rebuild.
+To save costs between talks, tear the environment down with `azd down --purge` and rebuild it with `azd up`. The `predown` hook ([predown.ps1](scripts/hooks/predown.ps1)) first removes the Blueprint federated credential for the environment's managed identity. Entra objects, test users, and the azd environment values (including the A2A key pair) are kept. To remove the Entra objects and test users too, see [scripts/README.md](scripts/README.md#remove-everything). See [Teardown and rebuild](../docs/demo-runbook.md#teardown-and-rebuild) for timing and the steps after a rebuild.
 
 ## Control markers
 
