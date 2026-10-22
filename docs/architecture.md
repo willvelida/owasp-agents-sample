@@ -1,7 +1,7 @@
 ---
 title: Architecture
 description: Architecture of the OWASP Agentic Top 10 sample, covering the insecure starter, the secured solution, identity flow, control placement, and Azure deployment
-ms.date: 2026-10-18
+ms.date: 2026-10-22
 ms.topic: concept
 ---
 
@@ -12,7 +12,7 @@ The sample is a Python port of the Biotrackr chat agent, shipped as two stacks w
 * `starter/` runs locally only and leaves every OWASP Agentic risk exploitable ([ADR-0003](adr/0003-mirrored-starter-and-solution.md), [ADR-0004](adr/0004-naive-but-plausible-starter.md), [ADR-0005](adr/0005-starter-local-only-solution-on-azure.md))
 * `solution/` applies a control for each risk and runs locally or on Azure Container Apps
 
-Both stacks share the seed data, the command-line client, and the PyRIT red-team harness at the repository root.
+Both stacks share the seed data, the command-line client, and the PyRIT red-team harness at the repository root. The solution also has a text-only browser client in `solution/ui` ([ADR-0025](adr/0025-browser-chat-client.md)).
 
 ## Repository layout
 
@@ -26,6 +26,7 @@ solution/           Secured stack (Podman Compose, azd, Bicep)
   policies/         Hash-pinned system prompt, governance YAML, blocked patterns, MCP descriptor lock
   scripts/          Agent ID provisioning and seeding
   infra/            Bicep for Azure Container Apps
+  ui/               Text-only Vue browser client for the solution (MSAL sign-in, nginx image)
 docs/adr/           Architecture decision records
 ```
 
@@ -182,12 +183,13 @@ sequenceDiagram
 
 ## Azure deployment
 
-Only the chat API has external ingress. The sidecar runs inside the chat API container app and authenticates with a federated credential on the Blueprint ([ADR-0017](adr/0017-live-azure-segment.md)).
+Two apps have external ingress. chat-api serves the AG-UI endpoint, and chat-ui serves the static Vue build of the browser client ([ADR-0025](adr/0025-browser-chat-client.md)). chat-ui holds no tokens server-side and no secrets: the browser signs in with MSAL.js through the `biotrackr-demo-spa` app and calls chat-api directly. chat-api's CORS policy allows only the chat-ui origin, for `POST`, without credentials, and every call still needs a valid user token. The sidecar runs inside the chat API container app and authenticates with a federated credential on the Blueprint ([ADR-0017](adr/0017-live-azure-segment.md)).
 
 ```mermaid
 flowchart LR
     cli([CLI / PyRIT])
-    entra["Microsoft Entra ID<br/>Blueprint + FIC for managed identity"]
+    browser([Browser])
+    entra["Microsoft Entra ID<br/>Blueprint + FIC for managed identity<br/>demo CLI and SPA apps"]
 
     subgraph rg["Resource group (azd)"]
         subgraph cae["Container Apps environment"]
@@ -195,12 +197,14 @@ flowchart LR
                 chat["chat-api container"]
                 sidecar["AgentID sidecar container"]
             end
+            ui["chat-ui app (external ingress)<br/>nginx, static Vue build, CSP"]
             mcp["health-mcp app<br/>internal ingress"]
             report["report-agent app<br/>internal ingress"]
         end
         sessions["Dynamic Sessions pool<br/>custom container, egress disabled"]
         mi["User-assigned managed identity"]
         reportmi["Report agent managed identity<br/>Foundry, ACR pull, Session Executor"]
+        uimi["UI managed identity<br/>ACR pull only"]
         cosmos[("Cosmos DB<br/>Entra auth only")]
         foundry["Microsoft Foundry"]
         appconfig["App Configuration<br/>kill switch"]
@@ -209,6 +213,9 @@ flowchart LR
     end
 
     cli -->|"HTTPS + user token"| chat
+    browser -->|"HTTPS: static files"| ui
+    browser -->|"HTTPS + user token, CORS"| chat
+    browser -->|"MSAL sign-in"| entra
     chat --> sidecar
     sidecar --> entra
     chat --> mcp
@@ -218,6 +225,7 @@ flowchart LR
     mi -.-> mcp
     reportmi -.-> report
     reportmi -.-> sessions
+    uimi -.-> ui
     chat --> cosmos
     mcp --> cosmos
     chat --> foundry
@@ -255,6 +263,7 @@ The architecture is built up in vertical slices. Each one ends in a git tag that
 | `s4-operations`   | No change                               | Memory guard, resilience, kill switch, audit, rogue detection | App Configuration, `chat_history` and `audit` containers         |
 | `s5-supply-chain` | No change                               | Signed A2A messages, `a2a-keys` service, CI workflows    | None (`azd up` for the new signing-key parameters)                    |
 | `s6-talk-ready`   | No change                               | Demo runbook, saved scorecards, one retry for a cold kill-switch read | None (`azd deploy`)                                      |
+| `s7-browser-ui`   | No change                               | Vue browser client, chat-api CORS allowlist, SPA app registration | chat-ui app with an AcrPull-only identity (`azd up`)         |
 
 ## Related documents
 

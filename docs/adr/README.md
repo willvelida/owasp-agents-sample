@@ -1,7 +1,7 @@
 ---
 title: Architecture decision records
 description: Index of architecture decision records for the OWASP Agentic Top 10 sample
-ms.date: 2026-10-18
+ms.date: 2026-10-22
 ms.topic: reference
 ---
 
@@ -37,3 +37,4 @@ Each record captures one decision made while planning the sample, why it was mad
 | [0022](0022-local-azure-credential-in-compose.md)              | Provide Azure credentials to solution containers in Compose                    | Accepted |
 | [0023](0023-vertical-slices-with-tagged-checkpoints.md)        | Deliver in vertical slices with tagged checkpoints                             | Accepted |
 | [0024](0024-podman-container-engine.md)                        | Use Podman as the container engine                                             | Accepted |
+| [0025](0025-browser-chat-client.md)                            | Add a Vue browser AG-UI client with its own Entra SPA registration             | Accepted |

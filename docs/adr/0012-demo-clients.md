@@ -1,13 +1,13 @@
 ---
 title: "ADR-0012: Drive demos through an AG-UI CLI client, DevUI, and PyRIT"
 description: Use a shared command-line AG-UI client for authenticated demos, DevUI for local visuals, and PyRIT for attacks
-ms.date: 2026-10-18
+ms.date: 2026-10-22
 ms.topic: reference
 ---
 
 ## Status
 
-Accepted on 2026-10-18.
+Accepted on 2026-10-18. Amended on 2026-10-22 by [ADR-0025](0025-browser-chat-client.md).
 
 ## Context
 
@@ -42,3 +42,11 @@ DevUI runs the agent in-process and cannot carry per-user tokens, so it cannot d
 
 * [Architecture](../architecture.md)
 * [Research](../research.md)
+
+## Amendment (2026-10-22, slice S7)
+
+[ADR-0025](0025-browser-chat-client.md) adds a text-only Vue browser client for the solution, with its own Entra SPA registration. It replaces the "Custom AG-UI web chat" rejection above for the solution segment only:
+
+* The browser is the solution segment's demo surface. It shows alice and bob side by side and the ASI09 approval as a dialog.
+* The CLI stays the client for the starter segment and the red team, and it is the verbatim recovery path when the browser fails on stage.
+* DevUI stays local-only, bound to `127.0.0.1` in the offline identity mode. CI fails if `solution/infra` or `solution/azure.yaml` references it.
