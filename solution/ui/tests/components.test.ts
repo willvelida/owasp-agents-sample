@@ -107,9 +107,9 @@ describe("IdentityBanner", () => {
 
 describe("App", () => {
   const config: RuntimeConfig = {
-    tenantId: "e60bb76c-8fda-4ed4-a354-4836e3bfcbc3",
-    spaAppId: "534ca50a-ef98-433a-ae90-cd30dca10c2f",
-    blueprintAppId: "c7a41d39-67a4-4582-b343-a491dec17633",
+    tenantId: "11111111-1111-4111-8111-111111111111",
+    spaAppId: "22222222-2222-4222-8222-222222222222",
+    blueprintAppId: "33333333-3333-4333-8333-333333333333",
     chatApiUrl: "http://127.0.0.1:8000/",
   };
 
