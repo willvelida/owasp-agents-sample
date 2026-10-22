@@ -248,6 +248,8 @@ Bicep also creates the App Configuration store (Standard, access keys disabled; 
 
 Images build in ACR from the `runtime` stage. chat-api and chat-ui have external ingress; health-mcp and report-agent are internal, and the sidecar listens on 127.0.0.1 inside the chat-api replica. chat-ui serves the static browser client from non-root nginx with a strict CSP, runs with its own AcrPull-only identity, and holds no secrets. chat-api's `CORS_ALLOWED_ORIGINS` is set to exactly the chat-ui origin (`https://chat-ui.<environment default domain>`), and `ALLOWED_CLIENT_APP_IDS` to the CLI and SPA app ids. Open the browser client at `azd env get-value CHAT_UI_URL`.
 
+To save costs between talks, tear the environment down with `azd down --purge` and rebuild it with `azd up`. The `predown` hook ([predown.ps1](scripts/hooks/predown.ps1)) first removes the Blueprint federated credential for the environment's managed identity. Entra objects, test users, and the azd environment values (including the A2A key pair) are kept. See [Teardown and rebuild](../docs/demo-runbook.md#teardown-and-rebuild) for timing and the steps after a rebuild.
+
 ## Control markers
 
 Controls carry a `# ASI0x: <control>` comment. Weaknesses that later slices fix keep their `# ASI0x (starter): <why>` marker.
