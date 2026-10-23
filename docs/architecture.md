@@ -299,7 +299,7 @@ The architecture is built up in vertical slices. Each one ends in a git tag that
 | `s7-browser-ui`     | No change                                      | Vue browser client, chat-api CORS allowlist, SPA app registration                      | chat-ui app with an AcrPull-only identity (`azd up`)                             |
 | `s8-observability`  | Local Aspire with content-visible GenAI traces | Metadata-only distributed traces, control events, hashed audit trace IDs, local Aspire | Two App Insights writer assignments and health-mcp ingestion settings (`azd up`) |
 
-The S8 checkpoint tag is created only after its validation and operator rehearsal; the row names the slice, not an already-published tag.
+The S8 checkpoint tag marks the validated S8 commit. The live rehearsal of its ASI10 trace contrast is still to come.
 
 ## Related documents
 

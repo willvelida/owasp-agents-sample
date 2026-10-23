@@ -206,8 +206,9 @@ timings exclude narration):
 The recorded CLI commands use about three minutes of the 25, which leaves the rest for
 narration, code, and one retry. Starting the offline profile takes almost a
 minute, so start it before the talk if you plan to use it.
-The older measurements do not time the S8 trace contrast. Record its actual
-duration in the operator rehearsal before creating the S8 checkpoint tag.
+The older measurements do not time the S8 trace contrast. The S8 checkpoint
+was tagged before that rehearsal, so record its actual duration in the next
+operator rehearsal.
 
 ### Starter segment
 
