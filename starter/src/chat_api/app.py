@@ -7,15 +7,15 @@ from contextlib import asynccontextmanager
 
 import uvicorn
 from agent_framework.ag_ui import add_agent_framework_fastapi_endpoint
-from agent_framework.observability import configure_otel_providers
 from fastapi import FastAPI, HTTPException
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from chat_api.agent import build_agent
 from chat_api.history import CosmosConversationStore, CosmosHistoryProvider, current_user
+from telemetry import instrument_app, setup_telemetry
 
 # ASI10 (starter): prompts, tool arguments, and health data are written into traces.
-configure_otel_providers(service_name="biotrackr-chat-api", enable_sensitive_data=True)
+setup_telemetry("biotrackr-chat-api")
 
 store = CosmosConversationStore()
 agent = build_agent(CosmosHistoryProvider(store))
@@ -71,6 +71,9 @@ async def get_conversation(session_id: str) -> dict:
 async def delete_conversation(session_id: str) -> None:
     if not await store.delete(session_id):
         raise HTTPException(status_code=404)
+
+
+instrument_app(app)
 
 
 def main() -> None:

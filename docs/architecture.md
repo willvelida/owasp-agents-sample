@@ -1,7 +1,7 @@
 ---
 title: Architecture
 description: Architecture of the OWASP Agentic Top 10 sample, covering the insecure starter, the secured solution, identity flow, control placement, and Azure deployment
-ms.date: 2026-10-22
+ms.date: 2026-10-23
 ms.topic: concept
 ---
 
@@ -209,7 +209,7 @@ flowchart LR
         foundry["Microsoft Foundry"]
         appconfig["App Configuration<br/>kill switch"]
         acr["Container Registry"]
-        logs["Log Analytics + App Insights<br/>sensitive data off"]
+        logs["Log Analytics + App Insights<br/>App Insights: managed identity, no GenAI content"]
     end
 
     cli -->|"HTTPS + user token"| chat
@@ -235,35 +235,71 @@ flowchart LR
     cae -.-> logs
 ```
 
+## Telemetry flow and control correlation
+
+[ADR-0026](adr/0026-genai-telemetry-export.md) adds one telemetry bootstrap per stack for chat-api, health-mcp, and report-agent. MAF supplies the GenAI operation, tool, model, and token metadata. FastAPI instruments the built chat app; health probes are excluded.
+
+```mermaid
+flowchart LR
+    chat["chat-api<br/>HTTP + MAF GenAI spans"]
+    mcp["health-mcp<br/>MCP SERVER span"]
+    report["report-agent<br/>ASGI outside authentication"]
+    local["MAF OTLP exporters<br/>Compose: both stacks"]
+    aspire["Aspire Dashboard<br/>UI 127.0.0.1:18888 only"]
+    distro["Azure Monitor Distro<br/>Azure: solution only"]
+    appi["Application Insights<br/>Entra-only ingestion"]
+    audit["Hash-chained Cosmos audit<br/>trace_id inside hashed data"]
+
+    chat -->|"MCP _meta traceparent"| mcp
+    chat -->|"Signed A2A + traceparent header"| report
+    chat & mcp & report --> local
+    local -->|"OTLP/gRPC, internal network"| aspire
+    chat & mcp & report --> distro
+    distro -->|"Managed identity + Monitoring Metrics Publisher"| appi
+    chat -->|"Sanitised biotrackr.control span events"| local
+    chat --> audit
+```
+
+The solution fixes content capture off in both branches. The starter fixes it on and exports only to local Aspire; an App Insights connection string is ignored with a warning. Neither OTLP port is published to the host. The solution dashboard keeps token login and its read-only hardening. Both stacks use port 18888, so bring one down before starting the other.
+
+MCP server spans extract `_meta` rather than HTTP-session headers: MAF injects context before its MCP client span, making the server span a child of `execute_tool`. A2A uses global httpx injection and outermost ASGI extraction, so a rejected 401 is still traced without changing any signature input.
+
+One HTTP invocation has one distributed trace. A report approval resumes as another invocation: the fetch leg has chat/MCP spans and the approved-report leg has chat/report-agent spans. chart-runner remains uninstrumented and network-less; neither the browser nor the CLI is instrumented by this slice.
+
+Each audit write during a trace stores the trace ID in hash-covered `data` and adds one allowlisted `biotrackr.control` event. User oids stay out of spans. The background Cosmos drain starts in an empty context. Azure exports no application log lines: the distro's logger is dedicated and empty. The default 5-traces/s sampler can omit burst traces, so the audit and scorecards remain separate evidence.
+
 ## Risk-to-control map
 
-| ASI   | Starter weakness                                    | Solution control                                                           | Live |
-|-------|-----------------------------------------------------|----------------------------------------------------------------------------|------|
-| ASI01 | Prompt inline, poisoned notes reach the model       | Hash-pinned tiered prompt, input and tool-result screening, notes withheld | Yes  |
-| ASI02 | All tools incl. delete, unbounded paging, no budget | Allowlist, deny `*delete*`, argument validation, atomic session budget     | Yes  |
-| ASI03 | Model chooses `user_id`, no auth, API keys          | Entra Agent ID OBO, `oid`-scoped queries, `azp` checks, managed identity   | Yes  |
-| ASI04 | Unpinned ranges, overridable tool descriptions      | Hash-locked dependencies, MCP descriptor pinning, digest-pinned images, Dependabot, CodeQL, SBOM, `mcp-scan` | No   |
-| ASI05 | `exec()` in the report agent                        | AST check plus isolated runner with no network or secrets                  | Yes  |
-| ASI06 | Unbounded history, sessions not bound to users      | History caps, TTL, per-user partitions, MemoryGuard                        | No   |
-| ASI07 | Unauthenticated untyped A2A                         | Agent ID token, single-use Ed25519 signatures with nonce, timestamp, and body hash, versioned typed schemas | No   |
-| ASI08 | No timeouts, outage hangs the agent                 | Timeouts, bounded retries, circuit breaker, graceful degradation           | No   |
-| ASI09 | Medical advice allowed, fail-open reviewer          | Output classifier, fail-closed reviewer, approval for reports, disclaimers | Yes  |
-| ASI10 | No audit, no kill switch, sensitive telemetry       | Hash-chained audit, rogue detection, kill switch, OTel sensitive data off  | No   |
+| ASI     | Starter weakness                                                     | Solution control                                                                                                                                            | Live   |
+| ------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| ASI01   | Prompt inline, poisoned notes reach the model                        | Hash-pinned tiered prompt, input and tool-result screening, notes withheld                                                                                  | Yes    |
+| ASI02   | All tools incl. delete, unbounded paging, no budget                  | Allowlist, deny `*delete*`, argument validation, atomic session budget                                                                                      | Yes    |
+| ASI03   | Model chooses `user_id`, no auth, API keys                           | Entra Agent ID OBO, `oid`-scoped queries, `azp` checks, managed identity                                                                                    | Yes    |
+| ASI04   | Unpinned ranges, overridable tool descriptions                       | Hash-locked dependencies, MCP descriptor pinning, digest-pinned images, Dependabot, CodeQL, SBOM, `mcp-scan`                                                | No     |
+| ASI05   | `exec()` in the report agent                                         | AST check plus isolated runner with no network or secrets                                                                                                   | Yes    |
+| ASI06   | Unbounded history, sessions not bound to users                       | History caps, TTL, per-user partitions, MemoryGuard                                                                                                         | No     |
+| ASI07   | Unauthenticated untyped A2A                                          | Agent ID token, single-use Ed25519 signatures with nonce, timestamp, and body hash, versioned typed schemas                                                 | No     |
+| ASI08   | No timeouts, outage hangs the agent                                  | Timeouts, bounded retries, circuit breaker, graceful degradation                                                                                            | No     |
+| ASI09   | Medical advice allowed, fail-open reviewer                           | Output classifier, fail-closed reviewer, approval for reports, disclaimers                                                                                  | Yes    |
+| ASI10   | No audit or kill switch; sensitive telemetry visible in local Aspire | Hash-chained audit, rogue detection, kill switch; metadata-only App Insights export with managed identity, control span events, trace ID in the audit chain | No     |
 
 ## Delivery slices
 
 The architecture is built up in vertical slices. Each one ends in a git tag that runs locally and, from S1 onwards, on Azure ([ADR-0023](adr/0023-vertical-slices-with-tagged-checkpoints.md)).
 
-| Tag               | Starter components                      | Solution components added                                | Azure resources added                                                 |
-|-------------------|-----------------------------------------|----------------------------------------------------------|-----------------------------------------------------------------------|
-| `s0-foundation`   | chat-api, health-mcp, Cosmos emulator   | None                                                     | None                                                                  |
-| `s1-identity`     | No change                               | JWT validation, AgentID sidecar, OBO, identity simulator | Container Apps, ACR, managed identity, Cosmos DB, Foundry, monitoring |
-| `s2-tools`        | `delete_records`, rug-pull descriptions | Governance policies, input, tool, and tool-result guards | None (`azd deploy`)                                                   |
-| `s3-reports`      | report-agent with `exec()`              | report-agent, chart-runner, output guard, approvals      | report-agent app, Dynamic Sessions pool                               |
-| `s4-operations`   | No change                               | Memory guard, resilience, kill switch, audit, rogue detection | App Configuration, `chat_history` and `audit` containers         |
-| `s5-supply-chain` | No change                               | Signed A2A messages, `a2a-keys` service, CI workflows    | None (`azd up` for the new signing-key parameters)                    |
-| `s6-talk-ready`   | No change                               | Demo runbook, saved scorecards, one retry for a cold kill-switch read | None (`azd deploy`)                                      |
-| `s7-browser-ui`   | No change                               | Vue browser client, chat-api CORS allowlist, SPA app registration | chat-ui app with an AcrPull-only identity (`azd up`)         |
+| Tag                 | Starter components                             | Solution components added                                                              | Azure resources added                                                            |
+| ------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `s0-foundation`     | chat-api, health-mcp, Cosmos emulator          | None                                                                                   | None                                                                             |
+| `s1-identity`       | No change                                      | JWT validation, AgentID sidecar, OBO, identity simulator                               | Container Apps, ACR, managed identity, Cosmos DB, Foundry, monitoring            |
+| `s2-tools`          | `delete_records`, rug-pull descriptions        | Governance policies, input, tool, and tool-result guards                               | None (`azd deploy`)                                                              |
+| `s3-reports`        | report-agent with `exec()`                     | report-agent, chart-runner, output guard, approvals                                    | report-agent app, Dynamic Sessions pool                                          |
+| `s4-operations`     | No change                                      | Memory guard, resilience, kill switch, audit, rogue detection                          | App Configuration, `chat_history` and `audit` containers                         |
+| `s5-supply-chain`   | No change                                      | Signed A2A messages, `a2a-keys` service, CI workflows                                  | None (`azd up` for the new signing-key parameters)                               |
+| `s6-talk-ready`     | No change                                      | Demo runbook, saved scorecards, one retry for a cold kill-switch read                  | None (`azd deploy`)                                                              |
+| `s7-browser-ui`     | No change                                      | Vue browser client, chat-api CORS allowlist, SPA app registration                      | chat-ui app with an AcrPull-only identity (`azd up`)                             |
+| `s8-observability`  | Local Aspire with content-visible GenAI traces | Metadata-only distributed traces, control events, hashed audit trace IDs, local Aspire | Two App Insights writer assignments and health-mcp ingestion settings (`azd up`) |
+
+The S8 checkpoint tag is created only after its validation and operator rehearsal; the row names the slice, not an already-published tag.
 
 ## Related documents
 

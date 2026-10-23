@@ -94,6 +94,7 @@ module healthMcp 'modules/health_mcp.bicep' = {
     healthMcpAppId: healthMcpAppId
     chatAgentAppId: chatAgentAppId
     cosmosEndpoint: core.outputs.cosmosEndpoint
+    appInsightsConnectionString: core.outputs.appInsightsConnectionString
   }
 }
 

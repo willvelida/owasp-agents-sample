@@ -6,11 +6,12 @@ from types import SimpleNamespace
 import pytest
 from agent_framework import Agent, MiddlewareFailure
 from conftest import ENV
+from opentelemetry import trace
 from test_tool_governance import ScriptedClient, Tools, call
 
 from chat_api.auth import current_principal, principal_from_claims
 from chat_api.middleware import build_middleware, load_governance
-from chat_api.middleware.audit import AuditTrail, MemorySink, sanitise, verify_chain
+from chat_api.middleware.audit import AuditTrail, CosmosAuditSink, MemorySink, sanitise, verify_chain
 
 HEALTH = "minutesAsleep"
 
@@ -46,8 +47,8 @@ async def test_tool_runs_are_audited_without_health_payloads():
     assert ("agent_invocation", "start") in kinds and ("tool_invocation", "complete") in kinds
     dump = json.dumps(records)
     assert HEALTH not in dump and "result_preview" not in dump
-    # Random IDs and hashes can contain "410", so check the payload value only where data is stored.
-    assert all("410" not in json.dumps(r["data"]) for r in records)
+    # Random trace IDs can contain "410"; inspect only the non-correlation audit data.
+    assert all("410" not in json.dumps({k: v for k, v in r["data"].items() if k != "trace_id"}) for r in records)
     assert all(r["data"].get("oid") == ENV["ALICE_OID"] for r in records)
     assert verify_chain(records) == []
 
@@ -106,6 +107,7 @@ def test_otel_sensitive_data_is_off(monkeypatch):
 
     import chat_api.agent
     import chat_api.history
+    import telemetry
     from chat_api import app
 
     class Store:
@@ -113,6 +115,8 @@ def test_otel_sensitive_data_is_off(monkeypatch):
             pass
 
     monkeypatch.setattr(observability, "configure_otel_providers", configure)
+    monkeypatch.setattr(telemetry.HTTPXClientInstrumentor, "instrument", lambda self: None)
+    monkeypatch.setattr(telemetry.FastAPIInstrumentor, "instrument_app", lambda *a, **k: None)
     monkeypatch.setattr(chat_api.history, "CosmosConversationStore", Store)
     monkeypatch.setattr(
         chat_api.agent,
@@ -123,3 +127,77 @@ def test_otel_sensitive_data_is_off(monkeypatch):
     monkeypatch.setattr(app, "add_agent_framework_fastapi_endpoint", lambda *a, **k: None)
     app.build_app()
     assert seen["enable_sensitive_data"] is False
+
+
+def test_given_recording_span_when_audited_then_hashed_trace_and_sanitised_events(span_exporter):
+    sink = MemorySink()
+    trail = AuditTrail(sink)
+    with trace.get_tracer(__name__).start_as_current_span("run") as span:
+        expected = f"{span.get_span_context().trace_id:032x}"
+        trail.log(
+            "tool_invocation",
+            "agent",
+            "complete",
+            resource="get_sleep_records",
+            policy_decision="allow",
+            data={"tool": "get_sleep_records", "oid": ENV["ALICE_OID"], "session": "private", "trace_id": "forged"},
+        )
+        trail.log("tool_invocation", "agent", "denied", resource=ENV["ALICE_OID"], data={"reason": ENV["ALICE_OID"]})
+
+    records = stored(sink)
+    assert all(r["data"]["trace_id"] == expected for r in records)
+    assert verify_chain(records) == []
+    (finished,) = span_exporter.get_finished_spans()
+    assert len(finished.events) == len(records) == 2
+    assert finished.events[0].name == "biotrackr.control"
+    assert finished.events[0].attributes == {
+        "biotrackr.control.event_type": "tool_invocation",
+        "biotrackr.control.action": "complete",
+        "biotrackr.control.outcome": "success",
+        "biotrackr.control.decision": "allow",
+        "biotrackr.control.resource": "get_sleep_records",
+        "biotrackr.control.tool": "get_sleep_records",
+    }
+    for event in finished.events:
+        assert all(not any(word in key for word in ("oid", "session", "trace_id")) for key in event.attributes)
+        assert ENV["ALICE_OID"] not in str(event.attributes)
+
+
+def test_given_hashed_trace_when_edited_then_chain_verification_fails(span_exporter):
+    sink = MemorySink()
+    with trace.get_tracer(__name__).start_as_current_span("run"):
+        AuditTrail(sink).log("tool_invocation", "agent", "complete")
+    records = stored(sink)
+    records[0]["data"]["trace_id"] = "0" * 32
+
+    assert verify_chain(records) == ["seq 1: entry hash mismatch (entry altered)"]
+
+
+def test_given_no_span_when_audited_then_no_trace_id_or_event(span_exporter):
+    sink = MemorySink()
+
+    AuditTrail(sink).log("tool_invocation", "agent", "complete", data={"trace_id": "forged"})
+
+    assert "trace_id" not in sink.records[0]["data"]
+    assert verify_chain(stored(sink)) == []
+    assert not span_exporter.get_finished_spans()
+
+
+async def test_given_request_span_when_sink_drains_then_writes_have_empty_context(monkeypatch, span_exporter):
+    seen = []
+
+    class Container:
+        async def upsert_item(self, record):
+            seen.append(trace.get_current_span().get_span_context().is_valid)
+
+    async def container():
+        return Container()
+
+    sink = CosmosAuditSink()
+    monkeypatch.setattr(sink, "_get_container", container)
+    with trace.get_tracer(__name__).start_as_current_span("request"):
+        AuditTrail(sink).log("tool_invocation", "agent", "complete")
+        await sink.flush()
+    await sink.close()
+
+    assert seen == [False]
