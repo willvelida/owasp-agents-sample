@@ -9,8 +9,17 @@ x-app: &app
   environment: &app-env
     COSMOS_ENDPOINT: http://cosmos:8081
     COSMOS_DATABASE: biotrackr
+    OTEL_EXPORTER_OTLP_ENDPOINT: http://aspire-dashboard:18889
 
 services:
+  # ASI10 (starter): local traces expose prompts and health records in the GenAI visualizer.
+  aspire-dashboard:
+    image: mcr.microsoft.com/aspire/dashboard:13.6.1
+    ports:
+      - "127.0.0.1:18888:18888"
+    environment:
+      ASPIRE_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: "true"
+
   cosmos:
     image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-latest
     ports:
@@ -52,6 +61,8 @@ services:
       timeout: 3s
       retries: 20
     depends_on:
+      aspire-dashboard:
+        condition: service_started
       seed:
         condition: service_completed_successfully
 
@@ -70,6 +81,8 @@ services:
       timeout: 3s
       retries: 20
     depends_on:
+      aspire-dashboard:
+        condition: service_started
       health-mcp:
         condition: service_healthy
       report-agent:
@@ -91,3 +104,6 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+    depends_on:
+      aspire-dashboard:
+        condition: service_started

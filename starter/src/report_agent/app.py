@@ -16,6 +16,8 @@ from a2a.server.request_handlers import DefaultRequestHandler
 from a2a.server.routes import create_agent_card_routes, create_jsonrpc_routes
 from a2a.server.tasks import InMemoryTaskStore, TaskUpdater
 from a2a.types import AgentCapabilities, AgentCard, AgentInterface, AgentSkill
+from opentelemetry.instrumentation.asgi import OpenTelemetryMiddleware
+from opentelemetry.util.http import parse_excluded_urls
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -24,6 +26,7 @@ from starlette.routing import Route
 from report_agent.executor import run_chart_code
 from report_agent.generator import build_client, build_generator, generate_code
 from report_agent.reviewer import build_reviewer, review
+from telemetry import excluded_urls, setup_telemetry
 
 log = logging.getLogger("report_agent")
 
@@ -86,23 +89,25 @@ async def healthz(_: Request) -> JSONResponse:
     return JSONResponse({"status": "ok", "canary_present": bool(os.environ.get("REPORT_AGENT_CANARY"))})
 
 
-def create_app(executor: AgentExecutor | None = None) -> Starlette:
+def create_app(executor: AgentExecutor | None = None) -> OpenTelemetryMiddleware:
     card = agent_card(os.environ.get("REPORT_AGENT_URL", "http://report-agent:8002/"))
     handler = DefaultRequestHandler(
         agent_executor=executor or ReportExecutor(), task_store=InMemoryTaskStore(), agent_card=card
     )
     # ASI07 (starter): no authentication on the A2A endpoint.
-    return Starlette(
+    app = Starlette(
         routes=[
             Route("/healthz", healthz, methods=["GET"]),
             *create_agent_card_routes(card),
             *create_jsonrpc_routes(handler, "/"),
         ]
     )
+    return OpenTelemetryMiddleware(app, excluded_urls=parse_excluded_urls(excluded_urls()))
 
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
+    setup_telemetry("biotrackr-report-agent")
     uvicorn.run(create_app(), host=os.environ.get("HOST", "0.0.0.0"), port=int(os.environ.get("PORT", "8002")))
 
 

@@ -13,6 +13,7 @@ var roles = {
   acrPull: '7f951dda-4ed3-4680-a7ca-43fe172d538d'
   cognitiveServicesOpenAIUser: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
   azureAIUser: '53ca6127-db72-4b80-b1b0-d745d6d5456d'
+  monitoringMetricsPublisher: '3913510d-42f4-4e42-8a64-420c390055eb'
 }
 // Cosmos DB Built-in Data Contributor (data plane).
 var cosmosDataContributor = '00000000-0000-0000-0000-000000000002'
@@ -88,6 +89,27 @@ resource reportAcrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
     principalId: reportIdentity.properties.principalId
     principalType: 'ServicePrincipal'
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roles.acrPull)
+  }
+}
+
+// ASI10: both app identities publish telemetry to App Insights with Entra-only ingestion.
+resource appTelemetryWriter 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(appInsights.id, identity.id, roles.monitoringMetricsPublisher)
+  scope: appInsights
+  properties: {
+    principalId: identity.properties.principalId
+    principalType: 'ServicePrincipal'
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roles.monitoringMetricsPublisher)
+  }
+}
+
+resource reportTelemetryWriter 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(appInsights.id, reportIdentity.id, roles.monitoringMetricsPublisher)
+  scope: appInsights
+  properties: {
+    principalId: reportIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roles.monitoringMetricsPublisher)
   }
 }
 

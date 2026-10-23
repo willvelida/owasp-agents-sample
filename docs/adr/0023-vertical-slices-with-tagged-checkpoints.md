@@ -1,13 +1,15 @@
 ---
 title: "ADR-0023: Deliver in vertical slices with tagged checkpoints"
 description: Build the sample as vertical slices that each end in a tagged checkpoint runnable locally and on Azure, with a cumulative red-team scorecard
-ms.date: 2026-10-18
+ms.date: 2026-10-23
 ms.topic: reference
 ---
 
 ## Status
 
 Accepted on 2026-10-18. Amends the schedule in [ADR-0007](0007-all-ten-controls-with-cut-lines.md).
+
+Amended by [ADR-0026](0026-genai-telemetry-export.md), which adds S8 observability.
 
 ## Context
 

@@ -20,6 +20,8 @@ from a2a.server.events import EventQueue
 from a2a.server.request_handlers import DefaultRequestHandler
 from a2a.server.routes import create_agent_card_routes, create_jsonrpc_routes
 from a2a.server.tasks import InMemoryTaskStore, TaskUpdater
+from opentelemetry.instrumentation.asgi import OpenTelemetryMiddleware
+from opentelemetry.util.http import parse_excluded_urls
 from pydantic import ValidationError
 from starlette.applications import Starlette
 from starlette.requests import Request
@@ -33,6 +35,7 @@ from report_agent.a2a_security import PUBLIC_PATHS, RequireSignedRequest, Signat
 from report_agent.executor import ChartResult, ChartRunner, RunnerError
 from report_agent.reviewer import Verdict, review
 from report_agent.schemas import Report, ReportRequest, agent_card
+from telemetry import excluded_urls, setup_telemetry
 
 log = logging.getLogger("report_agent")
 
@@ -142,7 +145,10 @@ def create_app(pipeline: Pipeline, validator: JwtValidator, verifier: SignatureV
         ]
     )
     # ASI07: who is calling (token) first, then whether this exact request is genuine, fresh, and new.
-    return RequireCaller(RequireSignedRequest(app, verifier), validator)
+    return OpenTelemetryMiddleware(
+        RequireCaller(RequireSignedRequest(app, verifier), validator),
+        excluded_urls=parse_excluded_urls(excluded_urls()),
+    )
 
 
 def build_pipeline() -> Pipeline:
@@ -164,6 +170,7 @@ def build_pipeline() -> Pipeline:
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
     logging.getLogger("azure").setLevel(logging.WARNING)
+    setup_telemetry("biotrackr-report-agent")
     app = create_app(build_pipeline(), build_validator(), verifier_from_env())
     uvicorn.run(app, host=os.environ.get("HOST", "0.0.0.0"), port=int(os.environ.get("PORT", "8002")))
 

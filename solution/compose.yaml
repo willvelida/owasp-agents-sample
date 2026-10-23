@@ -18,6 +18,7 @@ x-app: &app
     COSMOS_DATABASE: biotrackr
     IDENTITY_MODE: ${IDENTITY_MODE:-entra}
     LOCAL_ISSUER_URL: http://local-issuer:8100
+    OTEL_EXPORTER_OTLP_ENDPOINT: http://aspire-dashboard:18889
   read_only: true
   tmpfs:
     - /tmp
@@ -26,6 +27,19 @@ x-app: &app
     - no-new-privileges:true
 
 services:
+  # ASI10: local trace viewer. Token login stays on; OTLP is never published to the host.
+  aspire-dashboard:
+    image: mcr.microsoft.com/aspire/dashboard:13.6.1@sha256:03099004e132a7ca2feb66c5fa24715ffeaaf2fffab6f8b2cda23de3abd3ea45
+    ports:
+      - "127.0.0.1:18888:18888"
+    networks: [app]
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+
   cosmos:
     image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-latest
     ports:
@@ -94,6 +108,8 @@ services:
       timeout: 3s
       retries: 20
     depends_on:
+      aspire-dashboard:
+        condition: service_started
       seed:
         condition: service_completed_successfully
 
@@ -127,6 +143,8 @@ services:
       timeout: 3s
       retries: 20
     depends_on:
+      aspire-dashboard:
+        condition: service_started
       health-mcp:
         condition: service_healthy
       report-agent:
@@ -159,6 +177,8 @@ services:
       timeout: 3s
       retries: 20
     depends_on:
+      aspire-dashboard:
+        condition: service_started
       chart-runner:
         condition: service_healthy
       a2a-keys:
