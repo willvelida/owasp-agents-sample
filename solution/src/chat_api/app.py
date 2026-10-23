@@ -15,6 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from chat_api.approvals import reject_edited_approvals
 from chat_api.auth import Principal, RequireUser, build_validator, snapshot_scope
+from telemetry import instrument_app, setup_telemetry
 
 
 def cors_allowed_origins(raw: str | None) -> list[str]:
@@ -115,21 +116,21 @@ def create_app(
 
 
 def build_app() -> FastAPI:
-    from agent_framework.observability import configure_otel_providers
-
     from chat_api.agent import build_agent
     from chat_api.history import CosmosConversationStore, CosmosHistoryProvider
     from chat_api.middleware.audit import AuditTrail, CosmosAuditSink
     from chat_api.middleware.memory_guard import MemoryGate
 
-    # ASI10: traces carry timings, token counts, and tool names, never prompts, tool arguments, or health data.
-    configure_otel_providers(service_name="biotrackr-chat-api", enable_sensitive_data=False)
+    # ASI10: telemetry.SENSITIVE_DATA keeps prompts, tool arguments, and health data out of traces.
+    setup_telemetry("biotrackr-chat-api")
     store = CosmosConversationStore()
     sink = CosmosAuditSink()
     audit = AuditTrail(sink)
     history = CosmosHistoryProvider(store, MemoryGate(audit=audit))
     agent = build_agent(history, audit=audit)
-    return create_app(agent, store, RequireUser(build_validator()), on_shutdown=(agent.user_tools.close, sink.close))
+    app = create_app(agent, store, RequireUser(build_validator()), on_shutdown=(agent.user_tools.close, sink.close))
+    instrument_app(app)
+    return app
 
 
 def main() -> None:

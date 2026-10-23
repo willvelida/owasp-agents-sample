@@ -3,7 +3,14 @@ from typing import Any
 
 import jwt
 import pytest
+from agent_framework.observability import enable_instrumentation
+from opentelemetry import trace
+from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
+import telemetry
 from auth_common import IssuerConfig, JwtValidator
 from local_issuer.app import Simulator
 
@@ -37,6 +44,32 @@ def env(monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
     for key, value in ENV.items():
         monkeypatch.setenv(key, value)
     return dict(os.environ)
+
+
+@pytest.fixture(autouse=True)
+def reset_telemetry(monkeypatch: pytest.MonkeyPatch, span_exporter: InMemorySpanExporter):
+    monkeypatch.delenv("APPLICATIONINSIGHTS_CONNECTION_STRING", raising=False)
+    monkeypatch.delenv("OTEL_EXPORTER_OTLP_ENDPOINT", raising=False)
+    telemetry._configured = False
+    enable_instrumentation(enable_sensitive_data=False, force=True)
+    span_exporter.clear()
+    yield
+    telemetry._configured = False
+    enable_instrumentation(enable_sensitive_data=False, force=True)
+    span_exporter.clear()
+    instrumentor = HTTPXClientInstrumentor()
+    if instrumentor.is_instrumented_by_opentelemetry:
+        instrumentor.uninstrument()
+
+
+@pytest.fixture(scope="session")
+def span_exporter():
+    exporter = InMemorySpanExporter()
+    provider = TracerProvider()
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
+    trace.set_tracer_provider(provider)
+    yield exporter
+    provider.shutdown()
 
 
 @pytest.fixture

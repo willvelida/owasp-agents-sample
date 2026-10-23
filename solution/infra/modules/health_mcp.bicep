@@ -11,6 +11,8 @@ param tenantId string
 param healthMcpAppId string
 param chatAgentAppId string
 param cosmosEndpoint string
+@description('App Insights connection string for Entra-only telemetry ingestion.')
+param appInsightsConnectionString string
 
 var name = 'health-mcp'
 var fqdn = '${name}.internal.${environmentDomain}'
@@ -53,6 +55,7 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'HEALTH_MCP_APP_ID', value: healthMcpAppId }
             { name: 'CHAT_AGENT_APP_ID', value: chatAgentAppId }
             { name: 'AZURE_CLIENT_ID', value: identityClientId }
+            { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsightsConnectionString }
             { name: 'COSMOS_ENDPOINT', value: cosmosEndpoint }
             { name: 'COSMOS_DATABASE', value: 'biotrackr' }
             { name: 'MCP_ALLOWED_HOSTS', value: '${fqdn},${fqdn}:443' }

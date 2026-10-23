@@ -17,6 +17,8 @@ from governance import PolicyError, descriptors
 from health_mcp.auth import REQUIRED_SCOPE, HealthTokenVerifier, build_validator
 from health_mcp.repository import HealthRepository
 from health_mcp.tools import Repository, register_tools
+from health_mcp.tracing import TracedFastMCP
+from telemetry import setup_telemetry
 
 log = logging.getLogger("health_mcp.server")
 
@@ -26,7 +28,7 @@ def build_server(repo: Repository, verifier: TokenVerifier, *, issuer_url: str) 
     allowed_hosts = [h.strip() for h in os.environ.get("MCP_ALLOWED_HOSTS", "").split(",") if h.strip()]
     allowed_hosts += ["localhost", f"localhost:{port}", "127.0.0.1", f"127.0.0.1:{port}"]
     # ASI03: every MCP request needs a valid OBO bearer token; the verifier enforces aud, scp, and azp.
-    mcp = FastMCP(
+    mcp = TracedFastMCP(
         "biotrackr-health",
         host=os.environ.get("MCP_HOST", "0.0.0.0"),
         port=port,
@@ -56,6 +58,7 @@ def build_server(repo: Repository, verifier: TokenVerifier, *, issuer_url: str) 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
     logging.getLogger("azure").setLevel(logging.WARNING)
+    setup_telemetry("biotrackr-health-mcp")
     verify_descriptor_pins()
     mcp = build_server(HealthRepository(), HealthTokenVerifier(build_validator()), issuer_url=issuer_for_mode().issuer)
     mcp.run(transport="streamable-http")

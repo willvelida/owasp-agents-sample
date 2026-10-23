@@ -15,6 +15,7 @@ Verify the stored chains (gaps in `seq` and edited or removed entries are report
 """
 
 import asyncio
+import contextvars
 import logging
 import os
 import random
@@ -26,6 +27,8 @@ import warnings
 from collections import deque
 from collections.abc import Iterable, Mapping
 from typing import Any, Protocol
+
+from opentelemetry import trace
 
 from chat_api.auth import current_principal
 
@@ -82,6 +85,20 @@ HASHED_FIELDS = (
     "entry_hash",
 )
 _MAX_TEXT = 160
+CONTROL_EVENT_FIELDS = frozenset(
+    {
+        "event_type",
+        "action",
+        "outcome",
+        "decision",
+        "resource",
+        "tool",
+        "reason",
+        "risk_level",
+        "error",
+        "quarantine_recommended",
+    }
+)
 
 
 def sanitise(data: Mapping[str, Any] | None) -> dict[str, Any]:
@@ -138,6 +155,12 @@ class AuditTrail:
         **_: Any,
     ) -> Any:
         details = sanitise(data)
+        span = trace.get_current_span()
+        context = span.get_span_context()
+        if trace_id is None and context.is_valid:
+            trace_id = f"{context.trace_id:032x}"
+        if trace_id is not None:
+            details["trace_id"] = trace_id
         principal = current_principal.get()
         if principal is not None:
             details.setdefault("oid", principal.oid)
@@ -166,6 +189,25 @@ class AuditTrail:
         self.recent.append(record)
         if self._sink is not None:
             self._sink.submit(record)
+        if span.is_recording():
+            fields = {
+                **details,
+                "event_type": event_type,
+                "action": action,
+                "outcome": outcome,
+                "decision": policy_decision,
+                "resource": resource,
+            }
+            span.add_event(
+                "biotrackr.control",
+                {
+                    f"biotrackr.control.{key}": value
+                    for key, value in fields.items()
+                    if key in CONTROL_EVENT_FIELDS
+                    and value is not None
+                    and not (principal is not None and isinstance(value, str) and principal.oid in value)
+                },
+            )
         return entry
 
 
@@ -224,7 +266,7 @@ class CosmosAuditSink:
         if self._queue is None:
             self._queue = asyncio.Queue(self._max_pending)
         if self._task is None or self._task.done():
-            self._task = loop.create_task(self._drain(), name="audit-sink")
+            self._task = loop.create_task(self._drain(), name="audit-sink", context=contextvars.Context())
         try:
             self._queue.put_nowait(record)
         except asyncio.QueueFull:
