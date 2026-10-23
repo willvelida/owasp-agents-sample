@@ -1,13 +1,29 @@
 ---
 title: Architecture decision records
 description: Index of architecture decision records for the OWASP Agentic Top 10 sample
-ms.date: 2026-10-22
+ms.date: 2026-10-23
 ms.topic: reference
 ---
 
 ## Overview
 
 Each record captures one decision made while planning the sample, why it was made, and what it costs. See [architecture](../architecture.md) for how the decisions fit together.
+
+Records describe the decision when it was made. Later records amend earlier ones, and the amended record names its replacement in its Status section. Where current behaviour differs from a record's expected consequences, the component guides describe what the code does now.
+
+## Start here
+
+| If you want to understand | Read |
+|---------------------------|------|
+| Why there are two stacks and how they relate | [0003](0003-mirrored-starter-and-solution.md), [0004](0004-naive-but-plausible-starter.md), [0005](0005-starter-local-only-solution-on-azure.md) |
+| Identity and per-user access (ASI03) | [0010](0010-model-access-key-vs-entra.md), [0013](0013-entra-agent-id-obo.md), [0014](0014-agent-id-sidecar.md), [0015](0015-scripted-agent-id-provisioning.md), [0018](0018-offline-identity-simulator.md) |
+| How controls behave when something fails | [0019](0019-fail-closed-control-contract.md), [0020](0020-indirect-injection-containment.md) |
+| Reports and clinical advice (ASI05, ASI09) | [0016](0016-isolated-chart-runner.md), [0021](0021-output-policy-for-clinical-advice.md) |
+| How the talk and the red team were planned | [0006](0006-shared-pyrit-red-team-harness.md), [0008](0008-live-demo-risk-selection.md), [0017](0017-live-azure-segment.md), [0023](0023-vertical-slices-with-tagged-checkpoints.md) |
+| The clients | [0012](0012-demo-clients.md), [0025](0025-browser-chat-client.md) |
+
+> [!NOTE]
+> [ADR-0018](0018-offline-identity-simulator.md) expects the offline simulator to let the demo survive a network outage. The simulator replaces Entra sign-in only: the agent still calls the solution's Foundry model, so chat needs the network. See [solution/README.md](../../solution/README.md#run-locally-offline-mode).
 
 ## Records
 

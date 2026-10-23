@@ -1,13 +1,23 @@
 ---
 title: Browser chat UI (solution)
 description: Text-only Vue 3 client for the Biotrackr solution chat API, with MSAL sign-in, AG-UI over SSE, and strict browser headers
-ms.date: 2026-10-22
+ms.date: 2026-10-23
 ms.topic: how-to
 ---
 
 ## Overview
 
 `solution/ui` is a small browser client for the solution's chat API. It signs alice or bob in with MSAL.js through the `biotrackr-demo-spa` Entra app. It sends AG-UI runs in the same request shape as the CLI in `client/`, and it renders every event as plain text. Every ASI03 control stays on the server: chat-api validates the bearer, and the CORS allowlist only lets this origin read responses.
+
+The browser client is optional; the [CLI](../../client/README.md) reaches every solution target without it. There are three ways to get a browser in front of the solution, and they are easy to confuse:
+
+| Option | What it is | Sign-in | Where it is documented |
+|--------|------------|---------|------------------------|
+| This client, local | A Vite dev server on `http://localhost:5173/` that you start with `npm run dev`; it is not a Compose service | Real Entra sign-in as `biotrackr-alice` or `biotrackr-bob` | [Run locally](#run-locally) |
+| This client, deployed | The `chat-ui` Container App that `azd up` deploys from [Containerfile](Containerfile) | Real Entra sign-in | [Container image](#container-image) |
+| DevUI | The Agent Framework developer UI on `127.0.0.1:8090`, running the agent in-process | Simulated: each run signs in `DEVUI_USER` (default alice) at the stage-only simulator, so the solution allows it only in offline mode | [solution/README.md](../README.md#run-locally-offline-mode) |
+
+This client does not work with the simulated-identity (offline) route, because it signs in with Entra only. It needs the Entra objects from [provision_agent_id.ps1](../scripts/README.md), and the SPA's redirect URIs, chat-api's `CORS_ALLOWED_ORIGINS`, and chat-api's `ALLOWED_CLIENT_APP_IDS` must all agree ([SPA redirect URIs](../scripts/README.md#spa-redirect-uris)).
 
 | Part | File | Notes |
 |------|------|-------|
@@ -72,7 +82,7 @@ npx playwright install chromium   # once per machine
 npm run e2e
 ```
 
-[playwright.config.ts](playwright.config.ts) builds a test-mode bundle (`npm run build:e2e`, Vite mode `e2e`, output `dist-e2e/`) and serves it with `vite preview`. In that mode, [src/auth-stub.ts](src/auth-stub.ts) replaces MSAL with a stub `AuthProvider` that returns a fake token, so the suite never touches Entra or a password. `/config.json` and every chat-api call are routed to the committed fixtures in [e2e/fixtures/](e2e/fixtures/). The specs cover:
+[playwright.config.ts](playwright.config.ts) builds a test-mode bundle (`npm run build:e2e`, Vite mode `e2e`, output `dist-e2e/`) and serves it with `vite preview`. In that mode, [src/auth-stub.ts](src/auth-stub.ts) replaces MSAL with a stub `AuthProvider` that returns a fake token, so the suite never touches Entra or a password. `/config.json` and every chat-api call are routed to the committed fixtures in [e2e/fixtures/](e2e/fixtures/), so these tests check the client's rendering and requests, not a real chat with the model. The specs cover:
 
 * a normal answer, and a tool call with its raw result
 * an approval interrupt and its decision-only resume (the request body is asserted)
