@@ -88,6 +88,28 @@ services:
       report-agent:
         condition: service_healthy
 
+  # ASI10 (starter): opt-in DevUI exports content-visible traces over the stack network.
+  devui:
+    <<: *app
+    profiles: [devui]
+    command: ["python", "-m", "chat_api.devui_main"]
+    environment:
+      <<: *app-env
+      MCP_URL: http://health-mcp:8001/mcp
+      REPORT_AGENT_URL: http://report-agent:8002/
+      DEVUI_HOST: 0.0.0.0
+      DEVUI_OPEN: "0"
+      OTEL_SERVICE_NAME: biotrackr-devui
+    ports:
+      - "127.0.0.1:8090:8090"
+    depends_on:
+      aspire-dashboard:
+        condition: service_started
+      health-mcp:
+        condition: service_healthy
+      report-agent:
+        condition: service_healthy
+
   report-agent:
     <<: *app
     command: ["python", "-m", "report_agent"]
