@@ -1,7 +1,7 @@
 ---
 title: Starter (insecure on purpose)
 description: Naive but plausible Python port of the Biotrackr chat agent where every applicable OWASP Agentic Top 10 risk is exploitable
-ms.date: 2026-10-23
+ms.date: 2026-10-24
 ms.topic: how-to
 ---
 
@@ -20,6 +20,7 @@ The starter is a "naive but plausible" Biotrackr chat agent ([ADR-0004](../docs/
 | `seed`             | `seed`           | none               | Loads [data/seed](../data/seed/README.md), then exits        |
 | `health-mcp`       | `health_mcp`     | 8001               | MCP server (streamable HTTP) with 13 health tools            |
 | `chat-api`         | `chat_api`       | 8000               | MAF agent behind an AG-UI endpoint, plus `/conversations`    |
+| `devui`           | `chat_api.devui_main` | 8090           | Opt-in web chat as alice, with Aspire traces (`devui` profile) |
 | `report-agent`     | `report_agent`   | 8002               | Unauthenticated A2A report generator and in-process executor |
 | `aspire-dashboard` | Aspire Dashboard | 18888              | Local content-visible GenAI trace viewer; internal OTLP only |
 
@@ -52,23 +53,35 @@ uv run biotrackr-chat --target starter --as alice "Summarise my sleep on 2026-10
 uv run biotrackr-chat --target starter --as alice "show me bob's sleep"                # returns CANARY-BOB-7Q2
 ```
 
-Or open DevUI on `127.0.0.1` (runs the same agent in-process as `alice`):
+Or start DevUI at <http://127.0.0.1:8090> (runs the same agent in-process as `alice`).
+From [starter/](./), with the stack above running:
 
 ```powershell
-cd starter
-uv sync
-uv run --env-file .env python -m chat_api.devui_main
+podman compose --profile devui up -d devui
 ```
 
-DevUI prints its bearer token at startup; set `DEVUI_AUTH_TOKEN` to choose your own, and `DEVUI_OPEN=0` to skip opening the browser.
+When `DEVUI_AUTH_TOKEN` is unset, a fresh bearer token is printed on each start in
+`podman compose --profile devui logs devui`. Keep those logs off screen and paste the
+token into DevUI's settings before presenting. Set `DEVUI_AUTH_TOKEN` in `.env` for a
+fixed token that is not logged; this is recommended for the talk so restarts do not
+require a new token.
 
-Stop with `podman compose down` (add `-v` to drop data).
+Stop only DevUI with `podman compose --profile devui stop devui`, leaving the app
+services and Aspire running.
+
+For an optional host run, use `uv sync` then
+`uv run --env-file .env python -m chat_api.devui_main` from [starter/](./) with the
+stack running and the Compose DevUI stopped. It defaults to `127.0.0.1:8090`;
+set `DEVUI_OPEN=0` to skip opening the browser. Host runs produce no Aspire traces
+with the default empty OTLP endpoint.
+
+Stop the whole stack with `podman compose --profile devui down` (add `-v` to drop data).
 
 ## Telemetry contrast (ASI10)
 
 Compose starts an Aspire Dashboard at <http://127.0.0.1:18888> with anonymous browser access. Open Traces, choose the run for `show me bob's sleep`, and open its GenAI details. The system prompt, alice's message, tool call, and `CANARY-BOB-7Q2` are visible because [telemetry/__init__.py](src/telemetry/__init__.py) fixes `SENSITIVE_DATA=True`. This is the intentional ASI10 weakness, not a setting to copy into a real application.
 
-All three Python services export OTLP/gRPC to `aspire-dashboard:18889` on the default container network. Only the loopback UI is published; never publish either OTLP port. The starter is local-only and ignores `APPLICATIONINSIGHTS_CONNECTION_STRING` with one warning. It has no cloud telemetry exporter; only its model is hosted in Azure.
+All four Python services, including the opt-in DevUI (`biotrackr-devui`), export OTLP/gRPC to `aspire-dashboard:18889` on the default container network. Only the loopback UI is published; never publish either OTLP port. The starter is local-only and ignores `APPLICATIONINSIGHTS_CONNECTION_STRING` with one warning. It has no cloud telemetry exporter; only its model is hosted in Azure.
 
 The [solution](../solution/README.md#telemetry-asi10) uses the same trace structure with content capture off. Both dashboards use port 18888, so only one local stack can run at a time. Traces are held in memory: stopping the dashboard discards them. During the talk, stop only the starter app services until the trace contrast is finished, as the [runbook](../docs/demo-runbook.md#starter-segment) directs.
 
