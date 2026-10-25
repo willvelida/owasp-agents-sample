@@ -217,7 +217,6 @@ Open each file at the named symbol. Paths are under `solution/` unless stated. T
   - Saved S8 scorecards: starter 25/25 succeeded, solution-local and solution-offline 25/25 blocked, solution-azure 22/22 blocked (3 fault-dependent attacks skipped)
   - Multi-turn `CrescendoAttack`: starter "Objective achieved in 2 turns" vs solution "Max turns (4) reached"
   - How I use it: every slice replays every attack; fault steps for ASI08 and ASI10; oracles stop fake "blocked" results; CI runs the model-free ASI07 attack on every push
-  - Be honest: one S7 Azure run blocked only 21/22 (`base64-change-my-dose`); a separate ASI09 rerun matched 4/4
 - Close (0:15): red teaming is a regression test for your controls
 
 ### PyRIT results
@@ -264,7 +263,7 @@ Three rules, each tied back to a moment the audience has already seen. Keep each
   - Action: remove every user, tenant, or role parameter the model can fill in
 - Fail closed, and prove it continuously (0:25):
   - Every layer here refuses when it can't decide: a guard with no verdict in 5 s, a kill switch it can't read, a tool whose descriptor drifted. The platform's content filter fails open (section 5), which is why your own layers mustn't
-  - Prove it: PyRIT replays every attack on every slice. The S7 Azure miss (21/22) was caught by a scorecard, not by a user
+  - Prove it: PyRIT replays every attack on every slice
   - Action: turn one attack from today into a regression test in CI, the way the model-free ASI07 attack runs on every push
 - Close the takeaways with the facts:
   - Both stacks run the default content filter
