@@ -266,7 +266,11 @@ Three rules, each tied back to a moment the audience has already seen. Keep each
   - Every layer here refuses when it can't decide: a guard with no verdict in 5 s, a kill switch it can't read, a tool whose descriptor drifted. The platform's content filter fails open (section 5), which is why your own layers mustn't
   - Prove it: PyRIT replays every attack on every slice. The S7 Azure miss (21/22) was caught by a scorecard, not by a user
   - Action: turn one attack from today into a regression test in CI, the way the model-free ASI07 attack runs on every push
-- Closing line: "The built-in filters were on for both stacks, and the starter still lost every attack. What stopped them was the solution's own code, following these three rules."
+- Close the takeaways with the facts:
+  - Both stacks run the default content filter
+  - Starter: 25 of 25 attacks succeeded
+  - Solution: every attack blocked (25/25 local, 22/22 on Azure)
+  - The difference is the application code, not the platform
 
 Learn more: [MCSB v2: AI security](https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-artificial-intelligence-security), [AI security in the Zero Trust Workshop](https://learn.microsoft.com/security/zero-trust/workshop-zero-trust-ai-security), [Configure and manage guardrails in Microsoft Foundry](https://learn.microsoft.com/training/modules/azure-ai-foundry-configure-manage-guardrails/), [Enable Defender for AI Services workload protection](https://learn.microsoft.com/training/modules/implement-defender-cloud-ai-services/)
 
