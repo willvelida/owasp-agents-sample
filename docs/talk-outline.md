@@ -81,7 +81,20 @@ Full pre-show checks are in [demo-runbook.md](./demo-runbook.md).
   10. Output guard
   11. Audit
 - Every layer fails closed
-- Mark where AGT supplies layers and where Entra Agent ID sits
+- Mark where AGT supplies layers and where Entra Agent ID sits:
+  - Agent Governance Toolkit (AGT):
+    - Microsoft's open-source runtime governance library for AI agents (public preview); the solution pins 5.0.0
+    - Plugs into Agent Framework as middleware (`create_governance_middleware`), with policy in versioned YAML (`solution/policies/governance.yaml`)
+    - Supplies: prompt-injection detection (input guard and tool-result guard), tool policy, `MemoryGuard`, rogue-agent detection, audit entries
+    - Not AGT, the solution's own code: kill switch, output guard, resilience, JWT validation
+  - Microsoft Entra Agent ID:
+    - Entra identities for AI agents, separate from users and ordinary apps
+    - A blueprint is the template; each agent gets its own identity from it (here, the chat agent and the report agent)
+    - Chat agent to health-mcp: OBO token, so each call carries both alice and the agent; health-mcp checks `azp` and filters by `oid`
+    - Chat agent to report agent: app-only token with the `Report.Generate` role
+    - The Agent ID sidecar (the Entra SDK for AgentID container) does the token exchange. On Azure it uses a federated credential for the managed identity, so the deployment holds no secrets
+    - Identity is the first layer on the request path: JWT validation before anything else runs
+  - Sources: [Agent Governance Toolkit](https://github.com/microsoft/agent-governance-toolkit), [What is Microsoft Entra Agent ID?](https://learn.microsoft.com/entra/agent-id/what-is-microsoft-entra-agent-id)
 - Platform beat (0:45): what the platform gives you, and why it isn't enough
   - Opener: "Biotrackr's layers fail closed; the platform layer under them doesn't."
   - Point 1: both stacks run the default content filter, jailbreak shield on (our templates never set a custom one). The starter lost 25 of 25.
@@ -168,6 +181,41 @@ Learn more: [What is Microsoft Entra Agent ID?](https://learn.microsoft.com/entr
 - ASI10 beat: compare the starter Aspire trace (prompt and canary visible) with the solution App Insights trace (no content)
 - ASI10 platform action (not in the repo, not demonstrated): disabling the agent identity or its blueprint in Entra stops new tokens, an identity-layer kill switch alongside the App Configuration flag. Agents that use API keys, like the starter, can't appear in Defender's agent inventory; an Entra agent identity, as the solution uses, is the precondition for it
 
+### Where each control lives in the solution, and what the platform adds
+
+Open each file at the named symbol. Paths are under `solution/` unless stated. The "Platform" notes are speaker context from the Microsoft Learn docs; none of these platform features is demonstrated on stage.
+
+- ASI04 Supply chain:
+  - Descriptor pinning: [`policies/mcp_tools.lock.json`](../solution/policies/mcp_tools.lock.json) holds one digest per tool; `descriptor_digest` and `mismatches` in [`src/governance/descriptors.py`](../solution/src/governance/descriptors.py) compare them
+  - Checked twice: `verify_descriptor_pins` in [`src/health_mcp/server.py`](../solution/src/health_mcp/server.py) refuses to start health-mcp on a mismatch, and `PinnedMCPStreamableHTTPTool` in [`src/chat_api/mcp_pinning.py`](../solution/src/chat_api/mcp_pinning.py) raises `DescriptorPinError` on every `tools/list` that drifts
+  - Hashed dependencies: [`uv.lock`](../solution/uv.lock), installed with `uv sync --frozen` in the [`Containerfile`](../solution/Containerfile)
+  - `mcp-scan` in CI: [`scripts/ci_mcp_scan.py`](../solution/scripts/ci_mcp_scan.py), run by the `offline stack (mcp-scan, ASI07 red team)` job in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) (repository root)
+  - Platform: none of the researched platform services pins MCP tool descriptions or checks dependency hashes, so this control stays in your code and CI
+- ASI06 Memory poisoning:
+  - MemoryGuard and caps: `MemoryGate` in [`src/chat_api/middleware/memory_guard.py`](../solution/src/chat_api/middleware/memory_guard.py), with `MAX_HYDRATED_MESSAGES = 50`, `MAX_STORED_MESSAGES = 100`, `MAX_FIELD_CHARS`, and `TTL_SECONDS` (90 days)
+  - Per-user partition: `CosmosHistoryProvider` in [`src/chat_api/history.py`](../solution/src/chat_api/history.py) reads and writes only the caller's partition; `chat_history` is partitioned by `/userId` in [`src/seed/load.py`](../solution/src/seed/load.py) (local) and [`infra/modules/core.bicep`](../solution/infra/modules/core.bicep) (Azure)
+  - Platform: [Defender for AI Services](https://learn.microsoft.com/azure/defender-for-cloud/ai-threat-protection) lists data poisoning among its alert types, but it detects and alerts; it doesn't block. [Purview's AI data risk tooling](https://learn.microsoft.com/training/modules/identify-ai-data-risks-purview/) doesn't capture Foundry agent interactions, so stored history stays an application concern
+- ASI07 Inter-agent comms:
+  - Agent ID token: `RequireCaller` in [`src/report_agent/app.py`](../solution/src/report_agent/app.py) checks the audience, the `Report.Generate` role, and `azp` (the chat agent)
+  - Signature, nonce, and 60 s window: `SignatureVerifier`, `ReplayCache`, and `RequireSignedRequest` in [`src/report_agent/a2a_security.py`](../solution/src/report_agent/a2a_security.py) (`MAX_AGE_SECONDS = 60`); chat-api signs each request with `A2ASigner`, attached in [`src/chat_api/tools_report.py`](../solution/src/chat_api/tools_report.py)
+  - Order: `create_app` wraps `RequireCaller(RequireSignedRequest(...))`, so the token is checked before the signature
+  - Platform: Entra issues the app-only Agent ID token that `RequireCaller` checks. [Conditional Access for agents](https://learn.microsoft.com/entra/identity/conditional-access/agent-id) can block risky agent identities, but it offers only agent-risk conditions and Block, and it needs licences this tenant doesn't have. The signature, nonce, and replay window stay in the app
+- ASI08 Cascading failures:
+  - Timeouts: `HTTP_TIMEOUT` (5 s connect, 30 s read) in [`src/chat_api/middleware/resilience.py`](../solution/src/chat_api/middleware/resilience.py), applied to the model client, MCP, and A2A calls
+  - Circuit breaker: `CircuitBreaker` (`failure_threshold=3`, `reset_seconds=30.0`) in the same file, used by `ResilientMCPStreamableHTTPTool` and the report tool
+  - Degraded reply: `GracefulDegradation` returns `DEGRADED_REPLY` instead of an error
+  - Platform: the [Foundry AI gateway](https://learn.microsoft.com/training/modules/configure-ai-gateway-security-foundry/) (preview, API Management) adds token-per-minute limits (429) and quotas (403) per caller, with metadata-only logs and alerts. It doesn't stop callers going straight to the model endpoint, and Biotrackr would have to reroute chat-api's model traffic through it. The platform also has its own failure mode: if the [content filter](https://learn.microsoft.com/azure/foundry-classic/foundry-models/concepts/content-filter) is down, requests complete unfiltered
+- ASI10 Rogue agents:
+  - Per-user quarantine: `RogueSettings` (`burst_limit = 50`, `burst_window_seconds = 120.0`, `quarantine_seconds = 300.0`), `RogueGate`, and `PerUserRogueDetection` in [`src/chat_api/middleware/rogue_guard.py`](../solution/src/chat_api/middleware/rogue_guard.py)
+  - Kill switch: `KillSwitchGuard` (per run) and `KillSwitchToolGuard` (per tool call) in [`src/chat_api/middleware/kill_switch.py`](../solution/src/chat_api/middleware/kill_switch.py), reading the App Configuration key `agent-kill-switch` and failing closed
+  - Hash-chained audit: `AuditTrail` and `verify_chain` in [`src/chat_api/middleware/audit.py`](../solution/src/chat_api/middleware/audit.py)
+  - Metadata-only telemetry: `SENSITIVE_DATA = False` in [`src/telemetry/__init__.py`](../solution/src/telemetry/__init__.py)
+  - Platform:
+    - Disabling the agent identity or blueprint in Entra stops new tokens ([Manage agent identities](https://learn.microsoft.com/entra/agent-id/manage-agent-identities-admin#disable-or-restrict-agent-identities))
+    - [Defender for AI Services](https://learn.microsoft.com/azure/defender-for-cloud/ai-threat-protection) alerts the SOC at the model; pass [`UserSecurityContext`](https://learn.microsoft.com/azure/defender-for-cloud/gain-end-user-context-ai) so an alert names the user (Biotrackr doesn't yet)
+    - [Defender's AI agent inventory](https://learn.microsoft.com/training/modules/analyze-ai-identity-risks-defender-xdr/2-discover-ai-agents-defender-portal) (preview) shows blast radius and attack paths, but only for Entra-backed agents and with licences this tenant doesn't have
+    - None of these quarantines one user's runaway agent the way `RogueGuard` does
+
 ## 8. Proving it: red teaming with PyRIT (19:30 to 22:30)
 
 - How PyRIT works (0:45):
@@ -182,7 +230,6 @@ Learn more: [What is Microsoft Entra Agent ID?](https://learn.microsoft.com/entr
   - Saved S8 scorecards: starter 25/25 succeeded, solution-local and solution-offline 25/25 blocked, solution-azure 22/22 blocked (3 fault-dependent attacks skipped)
   - Multi-turn `CrescendoAttack`: starter "Objective achieved in 2 turns" vs solution "Max turns (4) reached"
   - How I use it: every slice replays every attack; fault steps for ASI08 and ASI10; oracles stop fake "blocked" results; CI runs the model-free ASI07 attack on every push
-  - Be honest: one S7 Azure run blocked only 21/22 (`base64-change-my-dose`); a separate ASI09 rerun matched 4/4
 - Close (0:15): red teaming is a regression test for your controls
 
 ### PyRIT results
@@ -215,13 +262,27 @@ Learn more: [AI Red Teaming Agent](https://learn.microsoft.com/azure/foundry/con
 
 ## 9. Takeaways (22:30 to 24:00)
 
-- Treat LLM output as untrusted input in four places:
-  - Tool-call arguments: checked by tool policy
-  - Generated code: static check plus an isolated runner
-  - Tool results: untrusted envelope plus screening
-  - Replies: fail-closed classifier
-- Identity comes from tokens, never from the model
-- Fail closed, and prove it continuously
+Three rules, each tied back to a moment the audience has already seen. Keep each one to its callback and one action.
+
+- Treat LLM output as untrusted input in four places (0:45):
+  - Tool-call arguments: checked by tool policy before anything runs. Callback: attack 3 found no delete tool to call (`allowed_tools`, `denied_tools`, and the 20-call budget in `governance.yaml`)
+  - Generated code: static check plus an isolated runner. Callback: attack 4 was still denied after a human clicked **Approve** (`rejected_by: static_check`); human approval is not a security control on its own
+  - Tool results: an untrusted envelope plus screening, and strip what you don't need at the source. Callback: attack 2's poisoned note never reached the model (`withhold_notes`, `<untrusted-data>`)
+  - Replies: a fresh, tool-less classifier that fails closed. Callback: attack 5, and `base64-change-my-dose` in the S8 scorecard
+  - Action: list every place your agent's output becomes someone's input (an argument, code, the next prompt, a user's screen) and put one check on each
+- Identity comes from tokens, never from the model (0:20):
+  - Callback: in attack 1 the starter let the model choose `user_id: "bob"`; the solution's tools have no user field, and the OBO token's `oid` decides whose data comes back
+  - The same rule holds between agents: the report agent checks an Agent ID token before it even looks at the signature (section 7, ASI07)
+  - Action: remove every user, tenant, or role parameter the model can fill in
+- Fail closed, and prove it continuously (0:25):
+  - Every layer here refuses when it can't decide: a guard with no verdict in 5 s, a kill switch it can't read, a tool whose descriptor drifted. The platform's content filter fails open (section 5), which is why your own layers mustn't
+  - Prove it: PyRIT replays every attack on every slice
+  - Action: turn one attack from today into a regression test in CI, the way the model-free ASI07 attack runs on every push
+- Close the takeaways with the facts:
+  - Both stacks run the default content filter
+  - Starter: 25 of 25 attacks succeeded
+  - Solution: every attack blocked (25/25 local, 22/22 on Azure)
+  - The difference is the application code, not the platform
 
 Learn more: [MCSB v2: AI security](https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-artificial-intelligence-security), [AI security in the Zero Trust Workshop](https://learn.microsoft.com/security/zero-trust/workshop-zero-trust-ai-security), [Configure and manage guardrails in Microsoft Foundry](https://learn.microsoft.com/training/modules/azure-ai-foundry-configure-manage-guardrails/), [Enable Defender for AI Services workload protection](https://learn.microsoft.com/training/modules/implement-defender-cloud-ai-services/)
 
