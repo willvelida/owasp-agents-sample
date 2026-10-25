@@ -250,13 +250,23 @@ Learn more: [AI Red Teaming Agent](https://learn.microsoft.com/azure/foundry/con
 
 ## 9. Takeaways (22:30 to 24:00)
 
-- Treat LLM output as untrusted input in four places:
-  - Tool-call arguments: checked by tool policy
-  - Generated code: static check plus an isolated runner
-  - Tool results: untrusted envelope plus screening
-  - Replies: fail-closed classifier
-- Identity comes from tokens, never from the model
-- Fail closed, and prove it continuously
+Three rules, each tied back to a moment the audience has already seen. Keep each one to its callback and one action.
+
+- Treat LLM output as untrusted input in four places (0:45):
+  - Tool-call arguments: checked by tool policy before anything runs. Callback: attack 3 found no delete tool to call (`allowed_tools`, `denied_tools`, and the 20-call budget in `governance.yaml`)
+  - Generated code: static check plus an isolated runner. Callback: attack 4 was still denied after a human clicked **Approve** (`rejected_by: static_check`); human approval is not a security control on its own
+  - Tool results: an untrusted envelope plus screening, and strip what you don't need at the source. Callback: attack 2's poisoned note never reached the model (`withhold_notes`, `<untrusted-data>`)
+  - Replies: a fresh, tool-less classifier that fails closed. Callback: attack 5, and `base64-change-my-dose` in the S8 scorecard
+  - Action: list every place your agent's output becomes someone's input (an argument, code, the next prompt, a user's screen) and put one check on each
+- Identity comes from tokens, never from the model (0:20):
+  - Callback: in attack 1 the starter let the model choose `user_id: "bob"`; the solution's tools have no user field, and the OBO token's `oid` decides whose data comes back
+  - The same rule holds between agents: the report agent checks an Agent ID token before it even looks at the signature (section 7, ASI07)
+  - Action: remove every user, tenant, or role parameter the model can fill in
+- Fail closed, and prove it continuously (0:25):
+  - Every layer here refuses when it can't decide: a guard with no verdict in 5 s, a kill switch it can't read, a tool whose descriptor drifted. The platform's content filter fails open (section 5), which is why your own layers mustn't
+  - Prove it: PyRIT replays every attack on every slice. The S7 Azure miss (21/22) was caught by a scorecard, not by a user
+  - Action: turn one attack from today into a regression test in CI, the way the model-free ASI07 attack runs on every push
+- Closing line: "The platform gives you a floor. These three rules are yours to build on top of it."
 
 Learn more: [MCSB v2: AI security](https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-artificial-intelligence-security), [AI security in the Zero Trust Workshop](https://learn.microsoft.com/security/zero-trust/workshop-zero-trust-ai-security), [Configure and manage guardrails in Microsoft Foundry](https://learn.microsoft.com/training/modules/azure-ai-foundry-configure-manage-guardrails/), [Enable Defender for AI Services workload protection](https://learn.microsoft.com/training/modules/implement-defender-cloud-ai-services/)
 
