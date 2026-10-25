@@ -93,8 +93,8 @@ Full pre-show checks are in [demo-runbook.md](./demo-runbook.md).
 - Platform beat (0:45): what the platform gives you, and why it isn't enough
   - Opener: "Biotrackr's layers fail closed; the platform layer under them doesn't."
   - Point 1: both stacks run the default content filter, jailbreak shield on (our templates never set a custom one). The starter lost 25 of 25.
-  - Point 2: it screens prompts and replies; tool results only as documents, and that's off here. If it's down, requests complete unfiltered: a floor, not a control plane.
-  - Point 3: detection is separate. Defender for AI Services flags attacks at the model and alerts the SOC. Where your client supports it, pass `UserSecurityContext` so alerts name alice, not chat-api. Biotrackr doesn't yet.
+  - Point 2: it screens prompts and replies; tool results only as documents, off here, so our tool-result guard holds. If it's down, requests complete unfiltered: a floor, not a control plane.
+  - Point 3: detection is separate. Defender for AI Services flags model attacks and alerts the SOC. Where your client supports it, pass `UserSecurityContext` so alerts name alice, not chat-api. Biotrackr doesn't yet.
   - Alert slide (default: fallback; swap to screenshot if an alert is captured):
     - Fallback (no screenshot): "Defender for AI is built to flag these at the model. I didn't get an alert on this traffic, which is the point: detection isn't prevention."
     - Screenshot: show the redacted alert, captioned "free trial, synthetic traffic", and say "Defender flagged this one at the model."
