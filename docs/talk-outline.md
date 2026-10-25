@@ -95,9 +95,7 @@ Full pre-show checks are in [demo-runbook.md](./demo-runbook.md).
   - Point 1: both stacks run the default content filter, jailbreak shield on (our templates never set a custom one). The starter lost 25 of 25.
   - Point 2: it screens prompts and replies; tool results only as documents, off here, so our tool-result guard holds. If it's down, requests complete unfiltered: a floor, not a control plane.
   - Point 3: detection is separate. Defender for AI Services flags model attacks and alerts the SOC. Where your client supports it, pass `UserSecurityContext` so alerts name alice, not chat-api. Biotrackr doesn't yet.
-  - Alert slide (default: fallback; swap to screenshot if an alert is captured):
-    - Fallback (no screenshot): "Defender for AI is built to flag these at the model. I didn't get an alert on this traffic, which is the point: detection isn't prevention."
-    - Screenshot: show the redacted alert, captioned "free trial, synthetic traffic", and say "Defender flagged this one at the model."
+  - Close: "Defender for AI is built to flag these at the model. I didn't get an alert on this traffic, which is the point: detection isn't prevention."
 
 Learn more: [Agent middleware](https://learn.microsoft.com/agent-framework/concepts/agents/middleware/), [Defend against indirect prompt injection](https://learn.microsoft.com/security/zero-trust/sfi/defend-indirect-prompt-injection), [Content filtering for Foundry Models](https://learn.microsoft.com/azure/foundry-classic/foundry-models/concepts/content-filter)
 
@@ -196,4 +194,4 @@ Learn more: [MCSB v2: AI security](https://learn.microsoft.com/security/benchmar
 1. Section 7 ASI10: use the screenshot instead of live traces (about 0:45)
 2. Section 2: cut to one incident (about 1:00)
 3. Section 8: skip the live run; show the saved scorecards only (about 1:15)
-4. Section 5 platform beat: say only point 1 in one sentence, no screenshot (about 0:30)
+4. Section 5 platform beat: say only point 1 in one sentence, and skip the close (about 0:30)

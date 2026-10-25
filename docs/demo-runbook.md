@@ -171,10 +171,11 @@ Expect the redirect list to contain `http://localhost:5173/` and `$uiUrl/`.
 
 ### Defender for AI alert capture (one-off, before this talk)
 
-This is a one-off task for this talk, not a per-show check. It supplies the
-optional alert screenshot for the platform beat in section 5 of the
-[talk outline](talk-outline.md). The talk uses the spoken fallback by default
-and switches to the screenshot only if an alert is captured before 27 October 2026.
+This is a one-off task for this talk, not a per-show check. It was meant to
+supply an alert screenshot for the platform beat in section 5 of the
+[talk outline](talk-outline.md). No alert was captured, so the talk uses the
+spoken fallback line. Keep these steps for disabling the plan, and for any
+future capture.
 
 * The Defender for AI Services plan (AI services) is already on: it was enabled
   on 25 October 2026. Don't enable it again. Enabling or disabling it needs
@@ -259,8 +260,8 @@ follows its sections and timings.
 * 9:15-11:30 (section 5): Show the control-placement diagram and the fail-closed
   contract. End with the 45-second platform beat: the default content filter
   didn't stop the starter, and Defender for AI detects rather than prevents.
-  Say the fallback line by default; show the redacted alert screenshot instead
-  only if one was captured (see
+  Close it with the spoken fallback line; no alert was captured, so there's no
+  screenshot (see
   [Defender for AI alert capture](#defender-for-ai-alert-capture-one-off-before-this-talk)).
   Then switch to the browser windows (alice and bob, already signed in). No
   deployment runs on stage.
