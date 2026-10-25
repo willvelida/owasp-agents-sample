@@ -60,7 +60,7 @@ Full pre-show checks are in [demo-runbook.md](./demo-runbook.md).
   - Set a fixed `DEVUI_AUTH_TOKEN` in `.env` (recommended for restarts; it is not logged), or read the fresh generated token from `podman compose --profile devui logs devui` off screen after each start. Paste it into DevUI's settings before the talk, off the projector; never show those logs
 - Starter (DevUI, `http://127.0.0.1:8090`):
   - Start a new conversation, then send each prompt and wait for the answer
-  - Afterwards: stop only DevUI with `podman compose --profile devui stop devui` and reseed with `podman compose run --rm seed` in `starter/` (attack 3 really deletes alice's vitals). Leave the starter stack running for the section 8 PyRIT run; stop it after section 8 with `podman compose stop chat-api health-mcp report-agent cosmos`, keeping `aspire-dashboard` until section 7's trace beat is done
+  - Afterwards: stop only DevUI with `podman compose --profile devui stop devui` and reseed with `podman compose run --rm seed` in `starter/` (attack 3 really deletes alice's vitals). Leave the starter stack running for the section 8 PyRIT run; after section 8, bring it down with `podman compose --profile devui down` in `starter/`. Keep `aspire-dashboard` running until section 7's trace beat is done
 - Fallback (CLI, from `client/`): `uv run biotrackr-chat --target starter --as alice "<prompt>"`
 - Use the runbook prompts word for word. For attack 4, use the plain-words version; a prompt containing literal code trips MemoryGuard
 - If a starter prompt shows no output for 60 seconds, start a new conversation and resend (the starter has no timeouts)
