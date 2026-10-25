@@ -168,6 +168,32 @@ Learn more: [What is Microsoft Entra Agent ID?](https://learn.microsoft.com/entr
 - ASI10 beat: compare the starter Aspire trace (prompt and canary visible) with the solution App Insights trace (no content)
 - ASI10 platform action (not in the repo, not demonstrated): disabling the agent identity or its blueprint in Entra stops new tokens, an identity-layer kill switch alongside the App Configuration flag. Agents that use API keys, like the starter, can't appear in Defender's agent inventory; an Entra agent identity, as the solution uses, is the precondition for it
 
+### Where each control lives in the solution
+
+Open each file at the named symbol. Paths are under `solution/` unless stated.
+
+- ASI04 Supply chain:
+  - Descriptor pinning: [`policies/mcp_tools.lock.json`](../solution/policies/mcp_tools.lock.json) holds one digest per tool; `descriptor_digest` and `mismatches` in [`src/governance/descriptors.py`](../solution/src/governance/descriptors.py) compare them
+  - Checked twice: `verify_descriptor_pins` in [`src/health_mcp/server.py`](../solution/src/health_mcp/server.py) refuses to start health-mcp on a mismatch, and `PinnedMCPStreamableHTTPTool` in [`src/chat_api/mcp_pinning.py`](../solution/src/chat_api/mcp_pinning.py) raises `DescriptorPinError` on every `tools/list` that drifts
+  - Hashed dependencies: [`uv.lock`](../solution/uv.lock), installed with `uv sync --frozen` in the [`Containerfile`](../solution/Containerfile)
+  - `mcp-scan` in CI: [`scripts/ci_mcp_scan.py`](../solution/scripts/ci_mcp_scan.py), run by the `offline stack (mcp-scan, ASI07 red team)` job in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) (repository root)
+- ASI06 Memory poisoning:
+  - MemoryGuard and caps: `MemoryGate` in [`src/chat_api/middleware/memory_guard.py`](../solution/src/chat_api/middleware/memory_guard.py), with `MAX_HYDRATED_MESSAGES = 50`, `MAX_STORED_MESSAGES = 100`, `MAX_FIELD_CHARS`, and `TTL_SECONDS` (90 days)
+  - Per-user partition: `CosmosHistoryProvider` in [`src/chat_api/history.py`](../solution/src/chat_api/history.py) reads and writes only the caller's partition; `chat_history` is partitioned by `/userId` in [`src/seed/load.py`](../solution/src/seed/load.py) (local) and [`infra/modules/core.bicep`](../solution/infra/modules/core.bicep) (Azure)
+- ASI07 Inter-agent comms:
+  - Agent ID token: `RequireCaller` in [`src/report_agent/app.py`](../solution/src/report_agent/app.py) checks the audience, the `Report.Generate` role, and `azp` (the chat agent)
+  - Signature, nonce, and 60 s window: `SignatureVerifier`, `ReplayCache`, and `RequireSignedRequest` in [`src/report_agent/a2a_security.py`](../solution/src/report_agent/a2a_security.py) (`MAX_AGE_SECONDS = 60`); chat-api signs each request with `A2ASigner`, attached in [`src/chat_api/tools_report.py`](../solution/src/chat_api/tools_report.py)
+  - Order: `create_app` wraps `RequireCaller(RequireSignedRequest(...))`, so the token is checked before the signature
+- ASI08 Cascading failures:
+  - Timeouts: `HTTP_TIMEOUT` (5 s connect, 30 s read) in [`src/chat_api/middleware/resilience.py`](../solution/src/chat_api/middleware/resilience.py), applied to the model client, MCP, and A2A calls
+  - Circuit breaker: `CircuitBreaker` (`failure_threshold=3`, `reset_seconds=30.0`) in the same file, used by `ResilientMCPStreamableHTTPTool` and the report tool
+  - Degraded reply: `GracefulDegradation` returns `DEGRADED_REPLY` instead of an error
+- ASI10 Rogue agents:
+  - Per-user quarantine: `RogueSettings` (`burst_limit = 50`, `burst_window_seconds = 120.0`, `quarantine_seconds = 300.0`), `RogueGate`, and `PerUserRogueDetection` in [`src/chat_api/middleware/rogue_guard.py`](../solution/src/chat_api/middleware/rogue_guard.py)
+  - Kill switch: `KillSwitchGuard` (per run) and `KillSwitchToolGuard` (per tool call) in [`src/chat_api/middleware/kill_switch.py`](../solution/src/chat_api/middleware/kill_switch.py), reading the App Configuration key `agent-kill-switch` and failing closed
+  - Hash-chained audit: `AuditTrail` and `verify_chain` in [`src/chat_api/middleware/audit.py`](../solution/src/chat_api/middleware/audit.py)
+  - Metadata-only telemetry: `SENSITIVE_DATA = False` in [`src/telemetry/__init__.py`](../solution/src/telemetry/__init__.py)
+
 ## 8. Proving it: red teaming with PyRIT (19:30 to 22:30)
 
 - How PyRIT works (0:45):
