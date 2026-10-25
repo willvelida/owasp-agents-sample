@@ -1,7 +1,7 @@
 ---
 title: Demo runbook
 description: Pre-show checks, a 25-minute demo with the starter on the CLI and the solution in the browser, verified scorecards, and recovery paths for the OWASP Agentic Top 10 talk
-ms.date: 2026-10-23
+ms.date: 2026-10-25
 ms.topic: how-to
 ---
 
@@ -169,21 +169,114 @@ $uiUrl
 
 Expect the redirect list to contain `http://localhost:5173/` and `$uiUrl/`.
 
+### Defender for AI alert capture (one-off, before this talk)
+
+This is a one-off task for this talk, not a per-show check. It was meant to
+supply an alert screenshot for the platform beat in section 5 of the
+[talk outline](talk-outline.md). No alert was captured, so the talk uses the
+spoken fallback line. Keep these steps for disabling the plan, and for any
+future capture.
+
+* The Defender for AI Services plan (AI services) is already on: it was enabled
+  on 25 October 2026. Don't enable it again. Enabling or disabling it needs
+  subscription Owner.
+* The plan covers every AI resource in the subscription, including resource
+  groups unrelated to this demo, not just the starter model.
+* The free trial lasts 30 days or 75 billion tokens, whichever comes first, so
+  it ends no later than 24 November 2026. Disable the plan right after the
+  capture, or straight after the talk if you want it on for questions. Keep a
+  calendar reminder before 24 November 2026 as a backstop.
+* Suspicious prompt evidence, data security for AI interactions (Purview), and
+  AI Model Security (Preview) stay off. The analysed traffic is the synthetic
+  alice and bob seed data, not real health data.
+* The starter's model is in its own resource group with key auth
+  ([ADR-0010](adr/0010-model-access-key-vs-entra.md)), so its traffic reaches a
+  Defender-covered resource without `UserSecurityContext`. An alert can't name
+  alice.
+
+Check that the plan is still on (read-only; expect `Standard`):
+
+```powershell
+az security pricing show --name AI --query pricingTier -o tsv
+```
+
+To send more traffic, check each precondition first, then run one starter ASI01
+pass off stage. Don't capture or show its terminal output: it prints the
+system prompt and synthetic canaries.
+
+* The starter stack is up: `podman compose ps` in `starter\` lists `chat-api`,
+  `health-mcp`, `report-agent`, and `cosmos` as running.
+* `redteam\` is installed: `uv sync` in `redteam\` completes without errors.
+* The shell has `$env:PYTHONUTF8 = "1"`: `$env:PYTHONUTF8` prints `1`.
+
+```powershell
+$env:PYTHONUTF8 = "1"
+Set-Location redteam
+uv run python -m redteam.run --target starter --risk ASI01
+Set-Location ..
+```
+
+Look for the alert in the Azure portal under **Microsoft Defender for Cloud** >
+**Security alerts**, and in the Defender portal if it's reachable from this
+tenant. Alert latency is unknown, so leave margin and check again later rather
+than rerunning the attacks. No alert is a valid outcome: use the fallback.
+
+If an alert appears, take one screenshot and redact all of the following before
+it goes anywhere near a slide:
+
+* Subscription ID, tenant ID, and resource IDs
+* Alert IDs
+* Source IP addresses
+* Real account names and email addresses (synthetic alice and bob may stay
+  visible)
+
+Keep the redacted copy with the slide assets, and the unredacted capture local
+only. Neither goes in this repository. Caption the slide "free trial, synthetic
+traffic".
+
+If no alert appears in time, or the plan stops working, say the fallback line
+instead: "Defender for AI is built to flag these at the model. I didn't get an
+alert on this traffic, which is the point: detection isn't prevention."
+
+To disable the plan, open **Microsoft Defender for Cloud** > **Environment
+settings**, select the subscription, set **AI services** to **Off** on the
+Defender plans page, and select **Save**. Then confirm with the read-only check
+above, which should print `Free`. As a CLI alternative, run
+`az security pricing create --name AI --tier Free`.
+
 ## Twenty-five-minute run order
 
-* Minutes 0-2: Explain the mirrored stacks and synthetic data. Show the
+The [talk outline](talk-outline.md) is the speaker's script; this run order
+follows its sections and timings.
+
+* 0:00-3:00 (sections 1-2): Intro, then recent agentic attacks, each tagged with
+  its ASI IDs for the call-back in section 7.
+* 3:00-5:15 (section 3): Walk the OWASP diagram and map Biotrackr onto it.
+  Explain the mirrored stacks and synthetic data, and show the
   [risk-to-control map](architecture.md#risk-to-control-map).
-* Minutes 2-8: Send the five starter prompts below in DevUI. Narrate the data boundary,
-  poisoned note, destructive tool, generated code, and unsafe clinical advice.
-* Minutes 8-10: Show the corresponding marked controls and switch to the
-  browser windows (alice and bob, already signed in). No deployment runs on stage.
-* Minutes 10-18: Type the same five prompts into alice's browser window. Explain
-  OBO, withheld notes, read-only tools, the report approval dialog and isolation,
-  and refusal. Show bob's window to make the per-user boundary visible.
-* Minutes 18-23: Show ASI04, ASI06, ASI07, and ASI08 code and scorecards.
-  For ASI10, show the trace contrast below.
-* Minutes 23-25: Explain the fail-closed contract and fallback; leave time for
-  one retry. Use the recording if a model or network delay consumes the margin.
+* 5:15-9:15 (section 4): Send the five starter prompts below in DevUI. Narrate
+  the data boundary, poisoned note, destructive tool, generated code, and unsafe
+  clinical advice. Reseed off screen.
+* 9:15-11:30 (section 5): Show the control-placement diagram and the fail-closed
+  contract. End with the 45-second platform beat: the default content filter
+  didn't stop the starter, and Defender for AI detects rather than prevents.
+  Close it with the spoken fallback line; no alert was captured, so there's no
+  screenshot (see
+  [Defender for AI alert capture](#defender-for-ai-alert-capture-one-off-before-this-talk)).
+  Then switch to the browser windows (alice and bob, already signed in). No
+  deployment runs on stage.
+* 11:30-17:00 (section 6): Type the same five prompts into alice's browser
+  window. Explain OBO, withheld notes, read-only tools, the report approval
+  dialog and isolation, and refusal. Show bob's window to make the per-user
+  boundary visible.
+* 17:00-19:30 (section 7): Show ASI04, ASI06, ASI07, and ASI08 code and
+  scorecards. For ASI10, show the trace contrast below, then say the platform
+  action: disabling the agent identity or its blueprint in Entra stops new
+  tokens. It's not in the repo and not demonstrated.
+* 19:30-22:30 (section 8): Run the PyRIT segment below, then zoom out to the
+  saved scorecards.
+* 22:30-25:00 (sections 9-10): Takeaways and close. Use the recording if a model
+  or network delay consumed the margin.
 
 For the second rehearsal, use the CLI recovery block (under Recovery) with
 `solution-offline` instead of the browser. Start the offline profile before that
@@ -255,8 +348,8 @@ The DevUI flow has not yet been timed in a rehearsal; the timings above were
 measured with the CLI. If DevUI fails on stage, use the starter CLI block under
 [Recovery](#starter-segment-fault-switch-to-the-cli).
 
-Keep `aspire-dashboard` running: its in-memory starter trace is needed at
-minute 18. The solution segment is on Azure, so the dashboard does not conflict.
+Keep `aspire-dashboard` running: its in-memory starter trace is needed in
+section 7 (from minute 17). The solution segment is on Azure, so the dashboard does not conflict.
 If you switch to a local solution fallback, bring the starter fully down first
 and use the starter screenshot instead.
 
@@ -341,7 +434,7 @@ For ASI10, replace the code walk-through with this trace contrast:
    `show me bob's sleep` and its GenAI details. Show the system prompt,
    alice's message, the tool call, and `CANARY-BOB-7Q2`.
 2. In App Insights Agents (Preview), open the solution trace for the same
-   prompt, captured during minutes 10-18. Show `invoke_agent`, `chat`, token
+   prompt, captured during the solution segment (minutes 11:30-17). Show `invoke_agent`, `chat`, token
    counts, and the absence of content. Prompt search returns nothing.
    Show `execute_tool`, the health-mcp SERVER span, and `biotrackr.control`
    events when those calls occurred. A safe early refusal may call no tool:
@@ -457,7 +550,7 @@ fallback below first, then set `$demoTarget = "solution-offline"`.
 ### Telemetry faults
 
 * If ingestion is slower than the pre-show observation, open a solution trace
-  captured during minutes 10-18, or use Live Metrics. Do not wait on a just-sent
+  captured during the solution segment (minutes 11:30-17), or use Live Metrics. Do not wait on a just-sent
   request on stage.
 * If Agents (Preview) is unavailable, use Search and the end-to-end transaction
   view. Do not interpret absent prompt-search results as failed ingestion:
