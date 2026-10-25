@@ -81,7 +81,20 @@ Full pre-show checks are in [demo-runbook.md](./demo-runbook.md).
   10. Output guard
   11. Audit
 - Every layer fails closed
-- Mark where AGT supplies layers and where Entra Agent ID sits
+- Mark where AGT supplies layers and where Entra Agent ID sits:
+  - Agent Governance Toolkit (AGT):
+    - Microsoft's open-source runtime governance library for AI agents (public preview); the solution pins 5.0.0
+    - Plugs into Agent Framework as middleware (`create_governance_middleware`), with policy in versioned YAML (`solution/policies/governance.yaml`)
+    - Supplies: prompt-injection detection (input guard and tool-result guard), tool policy, `MemoryGuard`, rogue-agent detection, audit entries
+    - Not AGT, the solution's own code: kill switch, output guard, resilience, JWT validation
+  - Microsoft Entra Agent ID:
+    - Entra identities for AI agents, separate from users and ordinary apps
+    - A blueprint is the template; each agent gets its own identity from it (here, the chat agent and the report agent)
+    - Chat agent to health-mcp: OBO token, so each call carries both alice and the agent; health-mcp checks `azp` and filters by `oid`
+    - Chat agent to report agent: app-only token with the `Report.Generate` role
+    - The Agent ID sidecar (the Entra SDK for AgentID container) does the token exchange. On Azure it uses a federated credential for the managed identity, so the deployment holds no secrets
+    - Identity is the first layer on the request path: JWT validation before anything else runs
+  - Sources: [Agent Governance Toolkit](https://github.com/microsoft/agent-governance-toolkit), [What is Microsoft Entra Agent ID?](https://learn.microsoft.com/entra/agent-id/what-is-microsoft-entra-agent-id)
 - Platform beat (0:45): what the platform gives you, and why it isn't enough
   - Opener: "Biotrackr's layers fail closed; the platform layer under them doesn't."
   - Point 1: both stacks run the default content filter, jailbreak shield on (our templates never set a custom one). The starter lost 25 of 25.
