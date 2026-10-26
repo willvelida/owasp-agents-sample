@@ -275,11 +275,11 @@ Three rules for anyone building agents.
   - Pass the signed-in user's identity in tokens, and let the downstream service decide what that user can see
   - Apply the same rule between agents: each agent proves who it is with its own identity
   - Action: remove every user, tenant, or role parameter the model can fill in
-- Fail closed, and prove it continuously (0:25):
-  - When a control can't decide (a timeout, an unreadable setting, an unexpected change), it refuses
-  - Platform protections can fail open, so your own controls must not
-  - Red-team the agent on every change, not once before launch
-  - Action: turn one known attack into an automated regression test in CI
+- If a check can't decide, block. And keep testing (0:25):
+  - When a safety check breaks or can't give an answer (it times out, can't read its settings, or sees something unexpected), block the action instead of letting it through
+  - Some platform protections do the opposite: if they're down, requests go through unchecked. Your own checks must block
+  - Re-run your attacks on every change, not once before launch
+  - Action: turn one known attack into an automated test in CI
 - Close: platform protections are a baseline. They don't replace controls in your own code
 
 Learn more: [MCSB v2: AI security](https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-artificial-intelligence-security), [AI security in the Zero Trust Workshop](https://learn.microsoft.com/security/zero-trust/workshop-zero-trust-ai-security), [Configure and manage guardrails in Microsoft Foundry](https://learn.microsoft.com/training/modules/azure-ai-foundry-configure-manage-guardrails/), [Enable Defender for AI Services workload protection](https://learn.microsoft.com/training/modules/implement-defender-cloud-ai-services/)
