@@ -1,7 +1,7 @@
 ---
 title: Demo runbook
 description: Pre-show checks, a 25-minute demo with the starter on the CLI and the solution in the browser, verified scorecards, and recovery paths for the OWASP Agentic Top 10 talk
-ms.date: 2026-10-25
+ms.date: 2026-10-26
 ms.topic: how-to
 ---
 
@@ -269,8 +269,9 @@ follows its sections and timings.
   window. Explain OBO, withheld notes, read-only tools, the report approval
   dialog and isolation, and refusal. Show bob's window to make the per-user
   boundary visible.
-* 17:00-19:30 (section 7): Show ASI04, ASI06, ASI07, and ASI08 code and
-  scorecards. For ASI10, show the trace contrast below, then say the platform
+* 17:00-19:30 (section 7): Talk through the starter-versus-solution table for
+  ASI04, ASI06, ASI07, and ASI08, with the saved scorecards as evidence; no
+  code walk. For ASI10, show the trace contrast below, then say the platform
   action: disabling the agent identity or its blueprint in Entra stops new
   tokens. It's not in the repo and not demonstrated.
 * 19:30-22:30 (section 8): Run the PyRIT segment below, then zoom out to the
@@ -416,8 +417,11 @@ tool's result shows the envelope.
 
 ### Code and scorecard segment
 
-Open the [solution marker table](../solution/README.md#control-markers) and these
-files, then show the saved scorecard rows rather than triggering faults live:
+Section 7 has no code walk: talk through the starter-versus-solution table in
+the [talk outline](talk-outline.md), and show the saved scorecard rows rather
+than triggering faults live. Keep the
+[solution marker table](../solution/README.md#control-markers) and these files
+open off screen in case of questions:
 
 * ASI04: `solution\policies\mcp_tools.lock.json`, `solution\uv.lock`,
   `.github\workflows\ci.yml`, and `.github\workflows\codeql.yml`
@@ -428,7 +432,7 @@ files, then show the saved scorecard rows rather than triggering faults live:
 * ASI08: `solution\src\chat_api\middleware\resilience.py` and
   `solution\src\chat_api\mcp_pool.py`
 
-For ASI10, replace the code walk-through with this trace contrast:
+For ASI10, show this trace contrast:
 
 1. In Aspire at <http://127.0.0.1:18888>, open the starter trace for
    `show me bob's sleep` and its GenAI details. Show the system prompt,
