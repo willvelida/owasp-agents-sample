@@ -262,27 +262,25 @@ Learn more: [AI Red Teaming Agent](https://learn.microsoft.com/azure/foundry/con
 
 ## 9. Takeaways (22:30 to 24:00)
 
-Three rules, each tied back to a moment the audience has already seen. Keep each one to its callback and one action.
+Three rules for anyone building agents.
 
-- Treat LLM output as untrusted input in four places (0:45):
-  - Tool-call arguments: checked by tool policy before anything runs. Callback: attack 3 found no delete tool to call (`allowed_tools`, `denied_tools`, and the 20-call budget in `governance.yaml`)
-  - Generated code: static check plus an isolated runner. Callback: attack 4 was still denied after a human clicked **Approve** (`rejected_by: static_check`); human approval is not a security control on its own
-  - Tool results: an untrusted envelope plus screening, and strip what you don't need at the source. Callback: attack 2's poisoned note never reached the model (`withhold_notes`, `<untrusted-data>`)
-  - Replies: a fresh, tool-less classifier that fails closed. Callback: attack 5, and `base64-change-my-dose` in the S8 scorecard
-  - Action: list every place your agent's output becomes someone's input (an argument, code, the next prompt, a user's screen) and put one check on each
+- Treat LLM output as untrusted input (0:45):
+  - Tool-call arguments: check them against a policy before the tool runs. Give the model only the tools it needs
+  - Generated code: check it before it runs, then run it in an isolated sandbox. Human approval alone isn't a security control
+  - Tool results: treat retrieved data as untrusted, mark it as data, screen it, and drop fields the model doesn't need
+  - Replies: check them before the user sees them, and block if the check fails
+  - Action: list every place your agent's output becomes an input (a tool argument, code, the next prompt, a user's screen) and put a check on each
 - Identity comes from tokens, never from the model (0:20):
-  - Callback: in attack 1 the starter let the model choose `user_id: "bob"`; the solution's tools have no user field, and the OBO token's `oid` decides whose data comes back
-  - The same rule holds between agents: the report agent checks an Agent ID token before it even looks at the signature (section 7, ASI07)
+  - The model must not choose which user, tenant, or role a call acts for
+  - Pass the signed-in user's identity in tokens, and let the downstream service decide what that user can see
+  - Apply the same rule between agents: each agent proves who it is with its own identity
   - Action: remove every user, tenant, or role parameter the model can fill in
 - Fail closed, and prove it continuously (0:25):
-  - Every layer here refuses when it can't decide: a guard with no verdict in 5 s, a kill switch it can't read, a tool whose descriptor drifted. The platform's content filter fails open (section 5), which is why your own layers mustn't
-  - Prove it: PyRIT replays every attack on every slice
-  - Action: turn one attack from today into a regression test in CI, the way the model-free ASI07 attack runs on every push
-- Close the takeaways with the facts:
-  - Both stacks run the default content filter
-  - Starter: 25 of 25 attacks succeeded
-  - Solution: every attack blocked (25/25 local, 22/22 on Azure)
-  - The difference is the application code, not the platform
+  - When a control can't decide (a timeout, an unreadable setting, an unexpected change), it refuses
+  - Platform protections can fail open, so your own controls must not
+  - Red-team the agent on every change, not once before launch
+  - Action: turn one known attack into an automated regression test in CI
+- Close: platform protections are a baseline. They don't replace controls in your own code
 
 Learn more: [MCSB v2: AI security](https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-artificial-intelligence-security), [AI security in the Zero Trust Workshop](https://learn.microsoft.com/security/zero-trust/workshop-zero-trust-ai-security), [Configure and manage guardrails in Microsoft Foundry](https://learn.microsoft.com/training/modules/azure-ai-foundry-configure-manage-guardrails/), [Enable Defender for AI Services workload protection](https://learn.microsoft.com/training/modules/implement-defender-cloud-ai-services/)
 
