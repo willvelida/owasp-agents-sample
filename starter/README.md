@@ -83,7 +83,7 @@ Compose starts an Aspire Dashboard at <http://127.0.0.1:18888> with anonymous br
 
 All four Python services, including the opt-in DevUI (`biotrackr-devui`), export OTLP/gRPC to `aspire-dashboard:18889` on the default container network. Only the loopback UI is published; never publish either OTLP port. The starter is local-only and ignores `APPLICATIONINSIGHTS_CONNECTION_STRING` with one warning. It has no cloud telemetry exporter; only its model is hosted in Azure.
 
-The [solution](../solution/README.md#telemetry-asi10) uses the same trace structure with content capture off. Both dashboards use port 18888, so only one local stack can run at a time. Traces are held in memory: stopping the dashboard discards them. During the talk, stop only the starter app services until the trace contrast is finished, as the [runbook](../docs/demo-runbook.md#starter-segment) directs.
+The [solution](../solution/README.md#telemetry-asi10) uses the same trace structure with content capture off. Both dashboards use port 18888, so only one local stack can run at a time. Traces are held in memory: stopping the dashboard discards them. During the talk, stop only the starter app services until the trace contrast is finished, as the [runbook](../docs/demo-runbook.md#demo-1-starter) directs.
 
 ## Attacks (slices S2 and S3)
 
