@@ -193,10 +193,18 @@ Background:
 * [Demo runbook](docs/demo-runbook.md)
 * [Podman setup](docs/podman.md)
 
-## Help and security
+Contributing:
 
-* Ask questions or report documentation and setup problems in [GitHub Issues](https://github.com/willvelida/owasp-agents-sample/issues).
-* Report a security problem in `solution/` privately through [GitHub private vulnerability reporting](https://github.com/willvelida/owasp-agents-sample/security/advisories/new), not in a public issue.
+* [Contributing guide](CONTRIBUTING.md)
+* [Security policy](SECURITY.md)
+* [Code of Conduct](CODE_OF_CONDUCT.md)
+
+## Contributing, help, and security
+
+* Read [CONTRIBUTING.md](CONTRIBUTING.md) before you start work. Contributions come from forks, and every pull request links an issue.
+* Follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+* Ask questions or report documentation and setup problems with the [issue forms](https://github.com/willvelida/owasp-agents-sample/issues/new/choose).
+* Report security problems privately, as [SECURITY.md](SECURITY.md) describes, not in a public issue.
 * The starter's weaknesses are intentional and documented, so you can discuss them openly.
 
 ## License

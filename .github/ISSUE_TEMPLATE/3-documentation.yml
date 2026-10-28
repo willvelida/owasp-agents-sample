@@ -1,0 +1,40 @@
+name: Documentation
+description: Report a mistake, gap, or outdated step in a README, ADR, runbook, or other doc.
+labels: ["documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve the docs. Read [CONTRIBUTING.md](https://github.com/willvelida/owasp-agents-sample/blob/main/CONTRIBUTING.md) first. You can fix a typo or a broken link with a pull request directly, without opening an issue.
+
+        Don't include secrets, keys, tenant or subscription IDs, endpoint URLs, or real health data. This issue is public.
+  - type: input
+    id: location
+    attributes:
+      label: Page or path
+      description: The file path or URL, and the heading if you can.
+      placeholder: solution/README.md, "Run locally (offline mode)"
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What's wrong or missing
+      description: Quote the text if it helps.
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested change
+      description: What should it say instead?
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you submit
+      description: By opening this issue, you agree to follow the [Code of Conduct](https://github.com/willvelida/owasp-agents-sample/blob/main/CODE_OF_CONDUCT.md).
+      options:
+        - label: I searched existing issues and read CONTRIBUTING.md.
+          required: true

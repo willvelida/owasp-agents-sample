@@ -1,0 +1,96 @@
+name: Bug report
+description: Something in a stack, the client, the red team, or CI doesn't work as documented.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Read [CONTRIBUTING.md](https://github.com/willvelida/owasp-agents-sample/blob/main/CONTRIBUTING.md) first.
+
+        * **`starter/` is insecure on purpose.** Weaknesses marked `# ASI0x (starter):` are teaching examples, not bugs. Report one here only if it no longer behaves as documented.
+        * **Security problems anywhere else go to [private vulnerability reporting](https://github.com/willvelida/owasp-agents-sample/security/advisories/new)**, not this form. See [SECURITY.md](https://github.com/willvelida/owasp-agents-sample/blob/main/SECURITY.md).
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of the repository is affected?
+      options:
+        - starter
+        - solution
+        - solution/ui
+        - client
+        - redteam
+        - data/seed
+        - docs
+        - CI
+    validations:
+      required: true
+  - type: dropdown
+    id: target
+    attributes:
+      label: Target
+      description: Which target were you running?
+      options:
+        - starter
+        - solution-local
+        - solution-offline
+        - solution-azure
+        - Not applicable
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: Describe the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+      description: What should have happened, and where is that documented?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The commands or prompts you ran, in order.
+      placeholder: |
+        1. podman compose up -d
+        2. uv run biotrackr-chat --target starter --as alice "..."
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system, container engine and version, and uv and Python versions.
+      placeholder: |
+        OS: Windows 11
+        Container engine: Podman 5.x
+        uv: 0.x, Python: 3.12.x
+    validations:
+      required: false
+  - type: markdown
+    attributes:
+      value: |
+        **Before you paste logs:** remove secrets, keys, tokens, tenant or subscription IDs, endpoint URLs, and any real health data. This issue is public.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: Paste only the lines that show the problem. It is formatted as code automatically.
+      render: shell
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you submit
+      description: By opening this issue, you agree to follow the [Code of Conduct](https://github.com/willvelida/owasp-agents-sample/blob/main/CODE_OF_CONDUCT.md).
+      options:
+        - label: I searched existing issues and read CONTRIBUTING.md.
+          required: true
