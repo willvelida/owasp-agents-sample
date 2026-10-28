@@ -145,7 +145,7 @@ The model often refuses on its own. For each attack, show the control that would
 
 ### Running the solution attacks
 
-Full pre-show checks are in [demo-runbook.md](./demo-runbook.md#browser-pre-show-solution-segment).
+Full pre-show checks are in [demo-runbook.md](./demo-runbook.md#setup).
 
 - Before the talk:
   - Sign alice and bob in within 24 hours of the talk, in two separate browser profiles at `CHAT_UI_URL`; keep the MFA device at hand and off screen
@@ -218,7 +218,7 @@ Speaker context from the Microsoft Learn docs; none is demonstrated on stage.
 
 ### Running the PyRIT attacks
 
-Full steps are in [demo-runbook.md](./demo-runbook.md#pyrit-segment).
+Full steps are in [demo-runbook.md](./demo-runbook.md#demo-3-pyrit).
 
 - Before the talk:
   - Run both commands once in a rehearsal and time them: the run time hasn't been measured yet
