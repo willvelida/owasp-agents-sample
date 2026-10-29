@@ -1,6 +1,7 @@
 ---
 title: Contributing
 description: How to propose, build, and submit a change to the OWASP agents sample, from an issue to a merged pull request
+ms.date: 2026-10-29
 ---
 
 Thanks for helping improve this sample. Biotrackr exists to teach the OWASP Top 10 for Agentic Applications, so every change has to keep the two stacks honest: `starter/` stays plausibly insecure, and `solution/` shows a working, tested control for each risk. This guide explains how to get a change from an idea to a merged pull request.
@@ -126,11 +127,27 @@ On Linux, `--with-deps` installs system packages and may need elevated rights. Y
 
 CI also runs checks that are slower or harder to run locally. Any of them can fail your pull request:
 
-* A software bill of materials (SBOM) for each project.
+* An SPDX software bill of materials (SBOM) for each of the four Python projects and the browser UI, scanned with pinned Trivy. An unignored high or critical vulnerability fails the job.
+* A build and vulnerability scan of the solution runtime, chart runner and browser UI images. The deliberately insecure starter image, local dev runtime and local-only sidecar image are excluded. Scan jobs have read-only permissions and do not push images.
 * A guard that keeps the stage-only identity simulator and DevUI out of `solution/infra/` and `solution/azure.yaml`.
 * A check that the end-to-end test sign-in stub is absent from the production build of `solution/ui/`.
 * A container build of `solution/ui/` that checks its security headers.
 * The offline solution stack with `mcp-scan` and the model-free ASI07 red-team run.
+
+The dependency and image gates use the root [.trivyignore.yaml](.trivyignore.yaml)
+explicitly. Scanner installation, database and scan errors fail closed; only the
+database download gets one retry. A green scan is not a signature or provenance
+check. See [ADR-0028](docs/adr/0028-vulnerability-scan-gates.md) for the trust
+boundary and remaining work on signing and deployed-image scanning.
+
+Prefer a dependency or pinned base-image fix to an exception. To propose an ignore
+entry, include the individual CVE, exact affected package versions in `purls`, a
+`statement` naming the affected component and reason, a concrete review trigger,
+and an `expired_at` date. Include baseline scan evidence; do not use blanket
+severity or package wildcards. The maintainer owns ignore-list review and triage:
+when a new finding turns unrelated PRs red, the maintainer either lands a fix or
+reviews a reasoned, time-bounded entry with a review trigger. An expired exception
+no longer suppresses its finding. An exception does not mean that a package is safe.
 
 ## Update the docs
 
