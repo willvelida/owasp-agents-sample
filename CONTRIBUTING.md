@@ -72,13 +72,27 @@ These rules keep the starter and solution comparison meaningful. A pull request 
 
 Run the checks for every project you changed before you open a pull request. CI runs the same commands.
 
+### Run them all with the harness
+
+`./harness verify` runs the checks below for every project your change touches and reports one result. Run it from the repository root. `./harness` works in sh, Git Bash, and PowerShell, and cmd needs `.\harness`.
+
+```bash
+./harness verify          # the sensors for the projects you changed
+./harness verify --all    # every sensor
+./harness doctor          # what's missing when verify reports an error
+./harness sensors         # what each sensor checks; add a sensor name to see its rules
+```
+
+It exits 0 when every check passes, 1 when a check finds a problem in your change, and 2 when it can't produce a trustworthy result, for example because a tool is missing. The per-project commands below stay the reference that CI mirrors, and the harness doesn't run the build, the e2e tests, or the checks in [What else CI checks](#what-else-ci-checks). The harness checks its own code too: run `npm ci --ignore-scripts` once in `.harness/`, then `./harness verify` from the repository root. [.harness/README.md](.harness/README.md) explains how to add a sensor or a command.
+
 ### Prerequisites
 
 * [uv](https://docs.astral.sh/uv/) with Python 3.12.
+* Node.js 24.12 or later to run `./harness`.
 * Node.js 24.22.0 for `solution/ui/`. CI uses this version, and `npm` refuses any version below 24.22.0 or at 25 and above.
 * Podman with a Compose provider, only if you run the stacks. See [docs/podman.md](docs/podman.md).
 
-The [dev container](.devcontainer/devcontainer.json) includes uv and Python 3.12, but not Node.js.
+The [dev container](.devcontainer/devcontainer.json) includes uv and Python 3.12, but not Node.js, so `./harness` can't run there. Use the per-project commands below instead.
 
 ### Python projects
 

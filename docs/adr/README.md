@@ -1,7 +1,7 @@
 ---
 title: Architecture decision records
 description: Index of architecture decision records for the OWASP Agentic Top 10 sample
-ms.date: 2026-10-23
+ms.date: 2026-10-29
 ms.topic: reference
 ---
 
@@ -56,3 +56,4 @@ Records describe the decision when it was made. Later records amend earlier ones
 | [0024](0024-podman-container-engine.md)                          | Use Podman as the container engine                                               | Accepted   |
 | [0025](0025-browser-chat-client.md)                              | Add a Vue browser AG-UI client with its own Entra SPA registration               | Accepted   |
 | [0026](0026-genai-telemetry-export.md)                           | Export metadata-only GenAI telemetry with a local content contrast               | Accepted   |
+| [0027](0027-agent-harness.md)                                    | Verify changes with an extensible TypeScript harness                             | Accepted   |

@@ -38,6 +38,17 @@ updates:
         update-types: ["minor", "patch"]
     open-pull-requests-limit: 10
 
+  # Harness dev tooling (typescript, @types/node). The cooldown mirrors .harness/.npmrc min-release-age=7.
+  - package-ecosystem: npm
+    directory: "/.harness"
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      harness:
+        patterns: ["*"]
+
   # Containerfiles (tag and digest pins) and Compose service images.
   - package-ecosystem: docker
     directories: ["/starter", "/solution", "/solution/ui"]

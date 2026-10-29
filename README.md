@@ -174,6 +174,9 @@ The sample was built in vertical slices. Each slice added a group of risks end t
 | `redteam/` | Shared PyRIT harness with a cumulative scorecard |
 | `data/seed/` | Synthetic health data for alice and bob, with attack artefacts |
 | `docs/` | Architecture, decision records, research, runbook, scorecards, Podman setup |
+| `AGENTS.md` | Guide for coding agents: rules, the verify command, and the definition of done |
+| `harness`, `harness.cmd` | Launchers for the `./harness` check command (`.\harness` in cmd) |
+| `.harness/` | The harness's TypeScript core, commands, sensors, and tests |
 
 ## Documentation
 
@@ -196,6 +199,7 @@ Background:
 Contributing:
 
 * [Contributing guide](CONTRIBUTING.md)
+* [Agent guide](AGENTS.md)
 * [Security policy](SECURITY.md)
 * [Code of Conduct](CODE_OF_CONDUCT.md)
 
