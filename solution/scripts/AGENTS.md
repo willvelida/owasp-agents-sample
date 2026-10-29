@@ -4,7 +4,7 @@ Applies to `solution/scripts/`, in addition to the [solution guide](../AGENTS.md
 
 ## Changes
 
-* Provisioning, hooks, and seeding can change Entra objects, credentials, Azure configuration, images, and data. A preview may invoke hooks too. Required #30/#35 operational steps are eligible only under the [root operational gates](../../AGENTS.md#scoped-operational-work), with explicit approval covering their side effects and shared-environment coordination; they are not routine source checks.
+* Provisioning, hooks, and seeding can change Entra objects, credentials, Azure configuration, images, and data. A preview may invoke hooks too. Operational steps supporting solution deployment and probes are eligible only under the [root operational gates](../../AGENTS.md#scoped-operational-work), with explicit approval covering their side effects and shared-environment coordination; they are not routine source checks.
 * Preserve idempotency and the documented object-matching boundaries. Do not broaden identity lookup to display-name-only matches.
 * Keep application IDs and service-principal object IDs distinct in code. Use synthetic placeholders in tests and examples; do not retrieve actual IDs, signing keys, passwords, or cached credentials.
 * Preserve the documented ownership and lifecycle of federated credentials, redirect URIs, and seed data. Read the [infrastructure guide](../infra/AGENTS.md) when changing their deployment contract.

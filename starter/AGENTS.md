@@ -7,11 +7,11 @@ Applies to `starter/`. Read the [root guide](../AGENTS.md) first; this guide add
 * The starter is deliberately insecure. Preserve every `# ASI0x (starter):` weakness and its targeted `noqa`; do not harden it while fixing something else.
 * Keep service and file names aligned with `solution/`. Mirror non-security fixes, refactors, and dependency changes, or explain why they cannot be mirrored.
 * A changed weakness comment requires the matching [weakness-marker table](README.md#weakness-markers) to change too. Use synthetic fixtures only.
-* The application is local-only and must never be deployed to Azure or any shared environment. Its separately hosted model does not make the application safe to deploy. For #25 only, local stack starts and the required probes are eligible under the [root operational gates](../AGENTS.md#scoped-operational-work); README commands are not authorization.
+* The application is local-only and must never be deployed to Azure or any shared environment. Its separately hosted model does not make the application safe to deploy. Local stack starts and selected probes or smoke tests are eligible under the [root operational gates](../AGENTS.md#scoped-operational-work); README commands are not authorization.
 
 ## Verification
 
-Run root harness verification as described in the [root guide](../AGENTS.md#verify); `python-starter` covers this project. The [contributor checks](../CONTRIBUTING.md#run-the-checks) remain the fallback reference. Routine checks do not start services. Separately authorized #25 operations must satisfy every root gate; never read environment or secret files, including through helpers. Hand protected-state steps to the operator.
+Run root harness verification as described in the [root guide](../AGENTS.md#verify); `python-starter` covers this project. The [contributor checks](../CONTRIBUTING.md#run-the-checks) remain the fallback reference. Routine checks do not start services. Separately authorized local operations must satisfy every root gate; never read environment or secret files, including through helpers. Hand protected-state steps to the operator.
 
 ## References
 

@@ -8,7 +8,7 @@ Applies to `solution/`. Read the [root guide](../AGENTS.md) first; this guide ad
 * Keep service and file names aligned with `starter/`. Mirror non-security fixes, refactors, and dependency changes, or explain why they cannot be mirrored. Security controls intentionally differ; never harden the starter to match.
 * A changed control comment requires the matching [control-marker table](README.md#control-markers) to change too. Use synthetic fixtures only.
 * Reviewed prompt or tool-descriptor changes must keep their pins consistent with the [governance contract](README.md#tool-governance-asi01-asi02-asi04). Do not bypass a pin mismatch to make a check pass.
-* Local offline mode replaces sign-in, not the cloud model. The [root operational policy](../AGENTS.md#scoped-operational-work) makes local stack/probe work for #25 and the named solution azd/Azure/probe work for #30/#35 eligible only after separate authorization and coordination. Neither offline mode nor README commands supply that authorization.
+* Local offline mode replaces sign-in, not the cloud model. The [root operational policy](../AGENTS.md#scoped-operational-work) makes local stack/probe work and solution azd/Azure deployment, probes, and supply-chain validation eligible only after separate authorization and coordination. Neither offline mode nor README commands supply that authorization.
 
 ## Specialized guidance
 

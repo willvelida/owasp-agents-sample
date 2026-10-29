@@ -30,21 +30,21 @@ The project map links the guides for explicit reading when your agent does not d
 * Mirror every non-security change in both `starter/` and `solution/`, or say in the pull request why it can't be mirrored.
 * Never read, print, or commit `.env` files, `.secrets/`, `.azure/`, keys, tokens, or tenant or subscription IDs.
 * Use synthetic data only.
-* Never deploy the insecure starter application to Azure or any shared environment. Operational work is limited to the named issues and authorization gates below; routine verification does not authorize it.
+* Never deploy the insecure starter application to Azure or any shared environment. Operational work must satisfy the authorization gates below; routine verification does not authorize it.
 
 ## Scoped operational work
 
-These are repository-level eligibility rules, not authorization to act. This documentation change, an issue assignment, a nested guide, or a worktree does not approve an operation or override session, developer, or tool restrictions.
+These are repository-level eligibility rules, not authorization to act. This documentation change, a task assignment, a nested guide, or a worktree does not approve an operation or override session, developer, or tool restrictions.
 
-| Planned work | Eligible operations after separate authorization |
+| Work | Eligible operations after separate authorization |
 |---|---|
-| [#25](https://github.com/willvelida/owasp-agents-sample/issues/25): probe baselines | Start the starter or solution stack on the local machine only, run the required forged-history and Unicode-smuggling probes, and perform the necessary synthetic-data reset and cleanup. The starter remains local-only. |
-| [#30](https://github.com/willvelida/owasp-agents-sample/issues/30): solution identities and Cosmos scopes | Run solution azd provisioning/deployment and its required hooks, explicitly remove the obsolete role assignment, inspect deployed role scopes, and run the required solution-Azure probes and chat smoke test. |
-| [#35](https://github.com/willvelida/owasp-agents-sample/issues/35): supply-chain evidence | Run the planned scans, solution azd/ACR build or deployment and opt-in deployed-digest probes. Registry publishing, signing, and provenance require separate authorization for the selected registry and CI job; deployment does not authorize them. |
+| Local stacks and probes | Start the starter or solution stack on the local machine, run selected red-team probes or chat smoke tests, and perform the necessary synthetic-data reset and cleanup. The starter remains local-only. |
+| Solution Azure deployment and probes | Run solution azd provisioning/deployment and required hooks, make explicitly approved resource or role changes, inspect deployed configuration, and run selected Azure probes and chat smoke tests. |
+| Solution supply-chain validation | Run planned scans, solution ACR builds, and opt-in deployed-digest probes. Registry publishing, signing, and provenance require separate authorization for the selected registry and CI job; deployment does not authorize them. |
 
 Before any eligible operation:
 
-1. Obtain explicit user/operator authorization naming the issue, target environment, exact operations, and expected effects. Confirm cost, destructive data or role changes, hooks, fault steps, and reset/cleanup boundaries; approval for one action is not approval for others.
+1. Obtain explicit user/operator authorization naming the task, target environment, exact operations, and expected effects. Confirm cost, destructive data or role changes, hooks, fault steps, and reset/cleanup boundaries; approval for one action is not approval for others.
 2. Coordinate with owners of shared container engines, ports, Azure environments, registries, and concurrent sessions before changing them. Agree on timing, resource ownership, recovery, and who performs cleanup. A worktree does not provide operational isolation.
 3. Keep synthetic data only and all protected-data rules above. Do not read, print, share, or commit secret files, credentials, or protected identifiers, and do not invoke helpers that read protected files on the agent's behalf. An operational approval cannot waive this boundary. If a command requires protected state or would expose it in output, stop and hand that step to the operator; obtain only sanitized results.
 4. Confirm the current session, developer, and tool rules permit the action. If any gate is missing or conflicting, do not execute; report the blocked step and request operator handoff. Save only genuine, sanitized evidence, never fabricated baselines or success claims.

@@ -9,7 +9,7 @@ Applies to `solution/ui/`, in addition to the [solution guide](../AGENTS.md) and
 * Approval dialogs show the full tool arguments and send only the accepted/rejected decision. Keep AG-UI transport and approval behavior aligned with the [CLI client](../../client/AGENTS.md).
 * Preserve the four-key runtime configuration contract and per-account thread isolation. Use synthetic configuration and stubbed responses in tests; do not load real environment values or sign in.
 * Keep the e2e authentication stub out of production builds. Stubbed browser tests are not evidence of real Entra or model connectivity.
-* The [root operational policy](../../AGENTS.md#scoped-operational-work) covers only named #25/#30/#35 operations after separate approval and coordination, not unrelated browser sign-in or live testing. Protected-state and current session restrictions still apply.
+* The [root operational policy](../../AGENTS.md#scoped-operational-work) makes stack/probe and solution deployment work eligible after separate approval and coordination; it does not authorize unrelated browser sign-in or live testing. Protected-state and current session restrictions still apply.
 
 ## Verification
 

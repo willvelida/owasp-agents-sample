@@ -8,7 +8,7 @@ Applies to `solution/infra/`. Also read this guide for `solution/azure.yaml`, as
 * Keep the stage-only identity simulator and developer UI out of Azure infrastructure and the deployment manifest.
 * Keep images pinned and configuration consistent with the solution's identity mode. Use placeholders in documentation and synthetic fixtures, never actual environment values.
 * Review related [provisioning scripts](../scripts/AGENTS.md) when a resource change affects hooks, seeding, or identity configuration.
-* Source editing is not deployment authorization. Solution azd, required hooks, role changes, and deployed probes for #30/#35 are eligible only under the [root operational gates](../../AGENTS.md#scoped-operational-work). Obtain explicit user/operator approval and shared-environment coordination first; a preview that invokes hooks is an operation too. No permission extends to deploying the starter application.
+* Source editing is not deployment authorization. Solution azd, required hooks, resource or role changes, and deployed probes are eligible only under the [root operational gates](../../AGENTS.md#scoped-operational-work). Obtain explicit user/operator approval and shared-environment coordination first; a preview that invokes hooks is an operation too. No permission extends to deploying the starter application.
 
 ## Verification
 

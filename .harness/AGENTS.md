@@ -10,7 +10,7 @@ Applies to `.harness/`. Also read this guide for the root `harness` and `harness
 * Preserve the documented file-size limits and one-file extension pattern in the [harness README](README.md).
 * Keep pass, fail, error, and skipped distinct. Missing tools, failed startup, timeouts, or zero checked items are not a pass. Every command ends with `next:`.
 * CI remains the source of truth for sensor behavior. Do not add stacks, red-team execution, or Azure operations to local verification.
-* The [root operational gates](../AGENTS.md#scoped-operational-work) are separate from this harness. Named issue work may be eligible after explicit approval and coordination, but a harness pass never authorizes it or waives protected-state or session restrictions.
+* The [root operational gates](../AGENTS.md#scoped-operational-work) are separate from this harness. Local stack/probe and solution deployment/probe work may be eligible after explicit approval and coordination, but a harness pass never authorizes it or waives protected-state or session restrictions.
 
 ## Verification
 
