@@ -29,7 +29,7 @@ x-app: &app
 services:
   # ASI10: local trace viewer. Token login stays on; OTLP is never published to the host.
   aspire-dashboard:
-    image: mcr.microsoft.com/aspire/dashboard:13.6.1@sha256:03099004e132a7ca2feb66c5fa24715ffeaaf2fffab6f8b2cda23de3abd3ea45
+    image: mcr.microsoft.com/aspire/dashboard:13.6.2@sha256:e4220c55fa3c3e40ad2d733ef07973392299b420e9bde6924e8f6a1e71ff01a8
     ports:
       - "127.0.0.1:18888:18888"
     networks: [app]
