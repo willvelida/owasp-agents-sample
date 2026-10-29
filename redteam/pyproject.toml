@@ -14,7 +14,7 @@ dependencies = [
 biotrackr-client = { path = "../client", editable = true }
 
 [dependency-groups]
-dev = ["ruff==0.17.1"]
+dev = ["ruff==0.17.2"]
 
 [build-system]
 requires = ["hatchling"]
