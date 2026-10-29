@@ -1,7 +1,7 @@
 ---
 title: Solution (hardened)
 description: Hardened Python port of the Biotrackr chat agent, with a marked, tested control for each OWASP Agentic Top 10 risk, slice by slice
-ms.date: 2026-10-23
+ms.date: 2026-10-29
 ms.topic: how-to
 ---
 
@@ -184,6 +184,8 @@ Slice S5 adds evidence that what runs is what was reviewed. The runtime half (ex
 | Lock checks | [ci.yml](../.github/workflows/ci.yml) | `uv lock --check`, then `uv sync --locked`, for starter, solution, client, and redteam. A lock out of date with `pyproject.toml` fails the build |
 | Lint and tests | [ci.yml](../.github/workflows/ci.yml) | `ruff check`, `ruff format --check`, and the solution's unit tests on every push and pull request |
 | SBOM | [ci.yml](../.github/workflows/ci.yml) | SPDX JSON for each project, including `ui/` (`anchore/sbom-action`), kept as a workflow artefact |
+| Dependency vulnerability gate | [ci.yml](../.github/workflows/ci.yml) (`sbom`), [.trivyignore.yaml](../.trivyignore.yaml) | Pinned Trivy scans all five SBOMs. Unignored high/critical findings, scanner errors or database errors fail CI; database download gets one retry |
+| Image vulnerability gate | [ci.yml](../.github/workflows/ci.yml) (`image-scan`) | Builds and scans the solution runtime, chart runner and browser UI on every push and PR. Same severity/ignore policy; no push or write permissions. Starter, local dev runtime and local-only sidecar images are excluded |
 | MCP scan | [ci_mcp_scan.py](scripts/ci_mcp_scan.py) | AGT `mcp-scan` against the live health-mcp server (offline mode, stage-only token). Any finding, inspection error, or a tool count different from the descriptor lock fails the build |
 | ASI07 red team | [ci.yml](../.github/workflows/ci.yml) | The model-free ASI07 attacks against the offline stack; any accepted forged, replayed, or tampered request fails the build |
 | No stage-only identity in Azure | [ci.yml](../.github/workflows/ci.yml) | Any `local_issuer` or DevUI reference in `infra/` or `azure.yaml` fails the build |
@@ -193,6 +195,23 @@ Slice S5 adds evidence that what runs is what was reviewed. The runtime half (ex
 | npm pins | [ui/package.json](ui/package.json), [ui/.npmrc](ui/.npmrc) | Exact versions, a committed v3 lockfile, `npm ci --ignore-scripts` only, `min-release-age=7` (npm refuses releases younger than 7 days), and `engine-strict=true` |
 | Pinned actions | [.github/workflows](../.github/workflows) | Every action by full commit SHA with a version comment; the repository requires SHA pinning. Read-only `GITHUB_TOKEN`, no `pull_request_target`, no credentials persisted by checkout |
 | Pinned images | [Containerfile](Containerfile), [chart_runner.Containerfile](chart_runner.Containerfile), [ui/Containerfile](ui/Containerfile), [chat_api.bicep](infra/modules/chat_api.bicep) | Base images and uv by tag and digest (the UI's Node build stage and `nginx-unprivileged` runtime too). The Azure sidecar is `auth-sidecar` 1.1.2 by index digest |
+
+The vulnerability gates use Trivy `0.76.1` with a SHA-pinned post-incident installer
+in read-only jobs, separate from any future publishing/signing credentials.
+[ADR-0028](../docs/adr/0028-vulnerability-scan-gates.md) records the scanner
+incident mitigations and scope. Exceptions are limited to individual CVEs and
+observed package versions, with reasons, review triggers and expiry dates.
+The maintainer owns triage of new findings; see the
+[contributor exception policy](../CONTRIBUTING.md#what-else-ci-checks).
+
+Signing/provenance and the opt-in deployed-image scan remain unimplemented work
+under [#35](https://github.com/willvelida/owasp-agents-sample/issues/35), not
+controls provided by these scan gates. No CI images are published, signed or
+attested by this change. The deployed-image scan remains blocked until the
+actual running image digest can be established; a configured revision digest or
+current registry tag resolution is not sufficient. azd still builds separately
+in ACR, so deploy-time signature verification requires future signed-digest
+deployment work.
 
 Dependabot cannot see two pins, so bump them by hand: the sidecar digest in [chat_api.bicep](infra/modules/chat_api.bicep) (`podman manifest inspect` the new tag), and the upstream commit and .NET images in [sidecar/Containerfile](sidecar/Containerfile).
 

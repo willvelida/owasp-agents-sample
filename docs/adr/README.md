@@ -22,6 +22,7 @@ Records describe the decision when it was made. Later records amend earlier ones
 | How the talk and the red team were planned                       | [0006](0006-shared-pyrit-red-team-harness.md), [0008](0008-live-demo-risk-selection.md), [0017](0017-live-azure-segment.md), [0023](0023-vertical-slices-with-tagged-checkpoints.md)                        |
 | The clients                                                      | [0012](0012-demo-clients.md), [0025](0025-browser-chat-client.md)                                                                                                                                           |
 | GenAI telemetry, audit correlation, and the ASI10 trace contrast | [0026](0026-genai-telemetry-export.md)                                                                                                                                                                      |
+| Dependency and deployable-image vulnerability gates (ASI04)     | [0028](0028-vulnerability-scan-gates.md)                                                                                                                                                                     |
 
 > [!NOTE]
 > [ADR-0018](0018-offline-identity-simulator.md) expects the offline simulator to let the demo survive a network outage. The simulator replaces Entra sign-in only: the agent still calls the solution's Foundry model, so chat needs the network. See [solution/README.md](../../solution/README.md#run-locally-offline-mode).
@@ -57,3 +58,4 @@ Records describe the decision when it was made. Later records amend earlier ones
 | [0025](0025-browser-chat-client.md)                              | Add a Vue browser AG-UI client with its own Entra SPA registration               | Accepted   |
 | [0026](0026-genai-telemetry-export.md)                           | Export metadata-only GenAI telemetry with a local content contrast               | Accepted   |
 | [0027](0027-agent-harness.md)                                    | Verify changes with an extensible TypeScript harness                             | Accepted   |
+| [0028](0028-vulnerability-scan-gates.md)                         | Gate dependencies and deployable images with Trivy                                | Accepted   |
