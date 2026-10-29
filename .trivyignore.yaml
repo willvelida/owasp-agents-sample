@@ -1,0 +1,131 @@
+# Baseline: 2026-10-29, Trivy 0.76.1, five project SBOMs and three linux/arm64 images.
+# Each exception is limited to the observed vulnerability and package versions.
+# Maintainer-owned: review on the named trigger or expiry, whichever comes first.
+vulnerabilities:
+  - id: CVE-2025-69720
+    purls:
+      - pkg:deb/debian/libncursesw6@6.5%2B20250216-2
+      - pkg:deb/debian/libtinfo6@6.5%2B20250216-2
+      - pkg:deb/debian/ncurses-base@6.5%2B20250216-2
+      - pkg:deb/debian/ncurses-bin@6.5%2B20250216-2
+    expired_at: 2026-11-28
+    statement: >-
+      Runtime and chart runner inherit ncurses from the pinned Python Debian base.
+      The baseline database lists no fixed Debian version. Review on the next
+      Python base-image update or when Debian publishes a fix.
+  - id: CVE-2026-16742
+    purls:
+      - pkg:deb/debian/libsystemd0@257.13-1~deb13u1
+      - pkg:deb/debian/libudev1@257.13-1~deb13u1
+    expired_at: 2026-11-28
+    statement: >-
+      Runtime and chart runner inherit systemd libraries from the pinned Python
+      Debian base. The baseline database lists no fixed Debian version. Review
+      on the next Python base-image update or when Debian publishes a fix.
+  - id: CVE-2026-54369
+    purls:
+      - pkg:deb/debian/libacl1@2.3.2-2%2Bb1
+    expired_at: 2026-11-28
+    statement: >-
+      Runtime and chart runner inherit libacl1 from the pinned Python Debian base.
+      The baseline database lists no fixed Debian version. Review on the next
+      Python base-image update or when Debian publishes a fix.
+  - id: CVE-2026-76642
+    purls:
+      - pkg:deb/debian/bsdutils@2.41.5-0%2Bdeb13u1
+      - pkg:deb/debian/libblkid1@2.41.5-0%2Bdeb13u1
+      - pkg:deb/debian/liblastlog2-2@2.41.5-0%2Bdeb13u1
+      - pkg:deb/debian/libmount1@2.41.5-0%2Bdeb13u1
+      - pkg:deb/debian/libsmartcols1@2.41.5-0%2Bdeb13u1
+      - pkg:deb/debian/libuuid1@2.41.5-0%2Bdeb13u1
+      - pkg:deb/debian/login@4.16.0-2%2Breally2.41.5-0%2Bdeb13u1
+      - pkg:deb/debian/mount@2.41.5-0%2Bdeb13u1
+      - pkg:deb/debian/util-linux@2.41.5-0%2Bdeb13u1
+    expired_at: 2026-11-28
+    statement: >-
+      Runtime and chart runner inherit util-linux packages from the pinned Python
+      Debian base. The baseline database lists no fixed Debian version. Review
+      on the next Python base-image update or when Debian publishes a fix.
+  - id: CVE-2026-78408
+    purls:
+      - pkg:deb/debian/bsdutils@2.41.5-0%2Bdeb13u1
+      - pkg:deb/debian/libblkid1@2.41.5-0%2Bdeb13u1
+      - pkg:deb/debian/liblastlog2-2@2.41.5-0%2Bdeb13u1
+      - pkg:deb/debian/libmount1@2.41.5-0%2Bdeb13u1
+      - pkg:deb/debian/libsmartcols1@2.41.5-0%2Bdeb13u1
+      - pkg:deb/debian/libuuid1@2.41.5-0%2Bdeb13u1
+      - pkg:deb/debian/login@4.16.0-2%2Breally2.41.5-0%2Bdeb13u1
+      - pkg:deb/debian/mount@2.41.5-0%2Bdeb13u1
+      - pkg:deb/debian/util-linux@2.41.5-0%2Bdeb13u1
+    expired_at: 2026-11-28
+    statement: >-
+      Runtime and chart runner inherit util-linux packages from the pinned Python
+      Debian base. The baseline database lists no fixed Debian version. Review
+      on the next Python base-image update or when Debian publishes a fix.
+  - id: CVE-2026-78409
+    purls:
+      - pkg:deb/debian/bsdutils@2.41.5-0%2Bdeb13u1
+      - pkg:deb/debian/libblkid1@2.41.5-0%2Bdeb13u1
+      - pkg:deb/debian/liblastlog2-2@2.41.5-0%2Bdeb13u1
+      - pkg:deb/debian/libmount1@2.41.5-0%2Bdeb13u1
+      - pkg:deb/debian/libsmartcols1@2.41.5-0%2Bdeb13u1
+      - pkg:deb/debian/libuuid1@2.41.5-0%2Bdeb13u1
+      - pkg:deb/debian/login@4.16.0-2%2Breally2.41.5-0%2Bdeb13u1
+      - pkg:deb/debian/mount@2.41.5-0%2Bdeb13u1
+      - pkg:deb/debian/util-linux@2.41.5-0%2Bdeb13u1
+    expired_at: 2026-11-28
+    statement: >-
+      Runtime and chart runner inherit util-linux packages from the pinned Python
+      Debian base. The baseline database lists no fixed Debian version. Review
+      on the next Python base-image update or when Debian publishes a fix.
+  - id: CVE-2026-78410
+    purls:
+      - pkg:deb/debian/bsdutils@2.41.5-0%2Bdeb13u1
+      - pkg:deb/debian/libblkid1@2.41.5-0%2Bdeb13u1
+      - pkg:deb/debian/liblastlog2-2@2.41.5-0%2Bdeb13u1
+      - pkg:deb/debian/libmount1@2.41.5-0%2Bdeb13u1
+      - pkg:deb/debian/libsmartcols1@2.41.5-0%2Bdeb13u1
+      - pkg:deb/debian/libuuid1@2.41.5-0%2Bdeb13u1
+      - pkg:deb/debian/login@4.16.0-2%2Breally2.41.5-0%2Bdeb13u1
+      - pkg:deb/debian/mount@2.41.5-0%2Bdeb13u1
+      - pkg:deb/debian/util-linux@2.41.5-0%2Bdeb13u1
+    expired_at: 2026-11-28
+    statement: >-
+      Runtime and chart runner inherit util-linux packages from the pinned Python
+      Debian base. The baseline database lists no fixed Debian version. Review
+      on the next Python base-image update or when Debian publishes a fix.
+  - id: CVE-2026-9538
+    purls:
+      - pkg:deb/debian/perl-base@5.40.1-6%2Bdeb13u1
+    expired_at: 2026-11-28
+    statement: >-
+      Runtime and chart runner inherit perl-base from the pinned Python Debian
+      base. The baseline database lists no fixed Debian version. Review on the
+      next Python base-image update or when Debian publishes a fix.
+  - id: CVE-2026-69247
+    purls:
+      - pkg:pypi/cryptography@49.0.0
+    expired_at: 2026-11-28
+    statement: >-
+      The solution SBOM and runtime pin cryptography 49.0.0. The fix requires
+      major version 50.0.0; this baseline change does not assume that upgrade is
+      behavior-preserving. Review with the next cryptography dependency update
+      and validate authentication and encryption compatibility before removing.
+  - id: CVE-2026-111497
+    purls:
+      - pkg:apk/alpine/brotli-libs@1.2.0-r1
+    expired_at: 2026-11-28
+    statement: >-
+      The pinned nginx UI base includes brotli-libs 1.2.0-r1; Alpine fixes this in
+      1.2.1-r0. Keep the reproducible baseline rather than mutate packages in a
+      build. Review on the next nginx base-image digest update containing the fix.
+  - id: CVE-2026-92392
+    purls:
+      - pkg:apk/alpine/curl@8.22.0-r0
+      - pkg:apk/alpine/libcurl@8.22.0-r0
+    expired_at: 2026-11-28
+    statement: >-
+      The pinned nginx UI base includes curl and libcurl 8.22.0-r0; Alpine fixes
+      these in 8.23.0-r0. Keep the reproducible baseline rather than mutate
+      packages in a build. Review on the next nginx base-image digest update
+      containing the fix.
