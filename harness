@@ -1,0 +1,8 @@
+#!/bin/sh
+# Starts the harness CLI. Every check lives in .harness/; this only finds Node.
+if ! command -v node >/dev/null 2>&1; then
+  echo "error: node not found"
+  echo "next: install Node.js 24.22.0 or later (see CONTRIBUTING.md, Prerequisites)"
+  exit 2
+fi
+exec node "$(dirname "$0")/.harness/harness.mjs" "$@"
