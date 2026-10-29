@@ -13,7 +13,9 @@ On every run, the core discovers each `.ts` file directly under `commands/` and 
 
 `verify` compares the work tree with the merge-base of the first ref that resolves among `--base`, `upstream/main`, `origin/main`, and `main`. Untracked files are included, and the harness never fetches. A sensor runs when a changed path starts with one of its directory `paths` (ending in `/`) or equals one of its file paths, and matches no `exclude`. With no base, every sensor runs.
 
-Sensors run one after another. Each subprocess runs from an argument array without a shell, with a time limit that kills the whole process tree, and keeps a 256 KiB tail of its output with colours stripped and secret-named environment values redacted. On Windows, `npm` alone goes through `cmd.exe` with constant, metacharacter-free arguments.
+Sensors run one after another. Each subprocess runs from an argument array without a shell, with a time limit and process-tree cleanup, and keeps a 256 KiB tail of its output with colours stripped and secret-named environment values redacted. On Windows, `npm` alone goes through `cmd.exe` with constant, metacharacter-free arguments.
+
+On POSIX, timeouts signal the process group with `SIGTERM`, then `SIGKILL` after 2 seconds, even if the leader has exited or its pipes have closed. Interruption also kills tracked groups after leader exit. On Windows, `taskkill /T /F` kills the tree only while its leader still exists; descendants orphaned before cleanup cannot be recovered by this mechanism. A clean leader exit cancels its timeout and kills its POSIX group. If inherited pipes remain open, capture ends after a 5-second drain without marking the successful leader timed out.
 
 ## Statuses and exit codes
 
@@ -27,8 +29,11 @@ The runner decides each sensor's status; the sensor only reports what it found.
 | `run()` returns a problem, throws, or reports `checked === 0` | `error` | 2 |
 | A tool in `requires` is not found | `error`; `run()` is not called | 2 |
 | Any `exec` in the sensor timed out or failed to start | `error` | 2 |
+| A Python, UI, or harness step terminates without an exit code | `error` | 2 |
 
 The command exits 2 on any error, usage error, discovery error, or interruption, otherwise 1 on any fail, otherwise 0. A finding means the change broke a rule. A problem means there is no trustworthy result, so the harness never reports it as a pass.
+
+The infra guard skips `.env`, `.env.*`, and `*.env` files. Python test steps remove `RUN_INTEGRATION` from the child environment, including differently cased spellings on Windows.
 
 ## Add a sensor
 
@@ -56,7 +61,7 @@ Run tools with `ctx.exec(['tool', 'arg'], { cwd: 'project', timeoutMs: 60_000 })
 
 ## Add a command
 
-Create one file in `commands/` that exports `defineCommand({ description, usage, run })`. `run(ctx)` writes lines with `ctx.write` and returns 0, 1, or 2. Keep the output contract: the first line is `<command>: <pass|fail|error>`, the last line starts with `next: `, and there are no colours or prompts. Parse flags with `parseFlags` from [core/output.ts](core/output.ts), which rejects unknown flags.
+Create one file in `commands/` that exports `defineCommand({ description, usage, run })`. `run(ctx)` writes lines with `ctx.write` and returns 0, 1, or 2. Keep the output contract: the first line is `<command>: <pass|fail|error>`, the last line starts with `next: `, and there are no colours or prompts. Parse flags with `parseFlags` from [commands/verify.ts](commands/verify.ts), which rejects unknown flags.
 
 ## Check the harness
 

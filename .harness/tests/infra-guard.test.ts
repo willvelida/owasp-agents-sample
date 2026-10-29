@@ -57,10 +57,13 @@ test('each hit is a finding with path:line, case-insensitive, recursive', async 
   assert.equal(result.checked, 3);
 });
 
-test('.env and *.env files are never read', async () => {
+test('.env, .env.*, and *.env files are never read', async () => {
   const root = await fixture({
     'solution/infra/main.bicep': 'resource x {}\n',
     'solution/infra/.env': 'LOCAL_ISSUER_SECRET=devui\n',
+    'solution/infra/.env.local': 'local_issuer=devui\n',
+    'solution/infra/.env.production': 'local_issuer=devui\n',
+    'solution/infra/params/.env.test': 'local_issuer=devui\n',
     'solution/infra/params/prod.env': 'local_issuer=1\n',
     'solution/azure.yaml': 'name: x\n',
   });

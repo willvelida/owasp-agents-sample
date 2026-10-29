@@ -1,5 +1,3 @@
-import { parseArgs } from 'node:util';
-import type { ParseArgsConfig } from 'node:util';
 import type { ExitCode, Rule } from './contracts.ts';
 import { exitCodeFor, statusFor } from './run.ts';
 import type { SensorRun } from './run.ts';
@@ -53,18 +51,4 @@ export function formatReport(report: Report): { lines: string[]; code: ExitCode 
   if (code === 0) lines.push('next: all checks pass; the change is ready to commit');
   else lines.push(code === 1 ? `next: fix the ${names('fail')} findings, then run ${report.rerun}` : `next: resolve the ${names('error')} problems, then run ${report.rerun}`);
   return { lines, code };
-}
-
-export type FlagValues = Record<string, string | boolean | undefined>;
-type Parsed = { values: FlagValues; positionals: string[] } | null;
-
-// Strict parsing of a command's own flags. On a usage error it writes the error lines and returns null; the command exits 2.
-export function parseFlags(command: string, usage: string, argv: readonly string[], options: NonNullable<ParseArgsConfig['options']>, write: (line: string) => void, allowPositionals = false): Parsed {
-  try {
-    const parsed = parseArgs({ args: [...argv], options, strict: true, allowPositionals });
-    return { values: { ...parsed.values } as FlagValues, positionals: parsed.positionals };
-  } catch (error) {
-    for (const line of [`${command}: error`, `error: ${oneLine((error as Error).message)}`, `usage: ${usage}`, 'next: ./harness --help']) write(line);
-    return null;
-  }
 }

@@ -15,15 +15,18 @@ export const stripAnsi = (text: string): string => text.replace(ANSI, '');
 
 export function redact(text: string, env: Readonly<Record<string, string | undefined>>): string {
   const secrets = Object.entries(env)
-    .filter(([name, value]) => SECRET_NAME.test(name) && (value?.length ?? 0) >= 8)
-    .map(([, value]) => value as string)
+    .flatMap(([name, value]) => SECRET_NAME.test(name) && value && value.length >= 8 ? [value] : [])
     .sort((a, b) => b.length - a.length);
   return secrets.reduce((result, secret) => result.split(secret).join('[redacted]'), text);
 }
 
+/** Applies overrides without mutating the parent; undefined removes every matching Windows casing. */
 export function childEnv(extra: Readonly<Record<string, string | undefined>> = {}): Record<string, string | undefined> {
-  const env: Record<string, string | undefined> = { ...process.env, NO_COLOR: '1', FORCE_COLOR: undefined, ...extra };
-  for (const name of Object.keys(env)) if (env[name] === undefined) delete env[name];
+  const env: Record<string, string | undefined> = { ...process.env };
+  for (const [name, value] of Object.entries({ NO_COLOR: '1', FORCE_COLOR: undefined, ...extra })) {
+    for (const key of Object.keys(env)) if (process.platform === 'win32' ? key.toLowerCase() === name.toLowerCase() : key === name) delete env[key];
+    if (value !== undefined) env[name] = value;
+  }
   return env;
 }
 
@@ -36,23 +39,24 @@ export function resolveCommand(argv: readonly string[], platform = process.platf
   return { file: process.env.ComSpec ?? 'cmd.exe', args: ['/d', '/s', '/c', 'npm', ...args] };
 }
 
-function killTree(child: ChildProcess, signal: 'SIGTERM' | 'SIGKILL'): void {
-  if (child.pid === undefined || child.exitCode !== null || child.signalCode !== null) return;
+function killTree(child: ChildProcess, signal: 'SIGTERM' | 'SIGKILL'): boolean {
+  if (child.pid === undefined) return false;
   if (process.platform === 'win32') {
-    spawnSync('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore', windowsHide: true });
-    return;
+    return spawnSync('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore', windowsHide: true }).status === 0;
   }
   try {
     process.kill(-child.pid, signal);
-  } catch {
-    // The process group has already exited.
+    return true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
+    return false;
   }
 }
 
-// Used by the interrupt handler; returns how many child trees were still running.
+/** Kills tracked process trees, including POSIX groups with exited leaders; returns the number signalled. */
 export function killAll(): number {
-  const count = live.size;
-  for (const child of live) killTree(child, 'SIGKILL');
+  let count = 0;
+  for (const child of live) if (killTree(child, 'SIGKILL')) count++;
   live.clear();
   return count;
 }
@@ -88,16 +92,26 @@ export function exec(repoRoot: string, argv: readonly [string, ...string[]], opt
       if (settled) return;
       settled = true;
       clearTimeout(timer);
-      live.delete(child);
+      if (!timedOut || process.platform === 'win32') live.delete(child);
       done(finish({ ...partial, timedOut }));
+    };
+    const drain = (code: number | null): void => {
+      setTimeout(() => {
+        if (!settled) [child.stdout?.destroy(), child.stderr?.destroy(), settle({ exitCode: code })];
+      }, 5000).unref();
     };
     const timer = setTimeout(() => {
       timedOut = true;
       killTree(child, 'SIGTERM');
-      if (process.platform !== 'win32') setTimeout(() => killTree(child, 'SIGKILL'), 2000).unref();
-      // A grandchild that escaped the kill can hold the pipes open; stop waiting for it.
-      setTimeout(() => [child.stdout?.destroy(), child.stderr?.destroy(), settle({ exitCode: null })], 5000).unref();
+      if (process.platform !== 'win32') setTimeout(() => { killTree(child, 'SIGKILL'); live.delete(child); }, 2000);
+      drain(null);
     }, options.timeoutMs);
+    child.on('exit', (code) => {
+      if (code !== 0 || timedOut) return;
+      clearTimeout(timer);
+      killTree(child, 'SIGKILL');
+      drain(code);
+    });
     child.on('error', (error) => settle({ spawnError: error.message }));
     child.on('close', (code) => settle({ exitCode: timedOut ? null : code }));
   });

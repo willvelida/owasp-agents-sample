@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { Rule } from '../core/contracts.ts';
-import { formatReport, parseFlags, TAIL_LINES, tail } from '../core/output.ts';
+import { formatReport, TAIL_LINES, tail } from '../core/output.ts';
+import { parseFlags } from '../commands/verify.ts';
 import type { SensorRun } from '../core/run.ts';
 
 const RULES: readonly Rule[] = [{ id: 'ruff-clean', expectation: 'ruff passes', repair: 'run `uv run --locked ruff check --fix`' }];

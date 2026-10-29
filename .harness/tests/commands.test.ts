@@ -142,3 +142,14 @@ test('doctor reports one line per item with a first-line status and next', async
   }
   lastIsNext(lines);
 });
+
+test('doctor fails deterministically with exit 1 and repairs when node_modules is absent', async () => {
+  const root = await gitRepo();
+  const { code, lines } = await call(doctor, [], new Map(), root);
+  assert.equal(code, 1);
+  assert.equal(lines[0], 'doctor: fail');
+  for (const folder of ['solution/ui', '.harness']) {
+    assert.ok(lines.includes(`${folder}/node_modules: missing; repair: in ${folder}, run npm ci --ignore-scripts`));
+  }
+  lastIsNext(lines);
+});

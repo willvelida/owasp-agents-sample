@@ -2,7 +2,7 @@
 import { stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { defineSensor } from '../core/contracts.ts';
-import type { Finding } from '../core/contracts.ts';
+import type { Finding, Problem } from '../core/contracts.ts';
 
 const INSTALL = 'cd .harness && npm ci --ignore-scripts';
 
@@ -24,12 +24,16 @@ export default defineSensor({
       { rule: 'tests-pass', argv: [process.execPath, '--test', '.harness/tests/**/*.test.ts'], timeoutMs: 300_000 },
     ] as const;
     const findings: Finding[] = [];
+    const problems: Problem[] = [];
     for (const step of steps) {
       const result = await ctx.exec(step.argv, { cwd: '.', timeoutMs: step.timeoutMs });
       if (result.exitCode !== 0 && !result.timedOut && result.spawnError === null) {
-        findings.push({ rule: step.rule, location: '.harness/', message: `${step.rule === 'types-clean' ? 'tsc' : 'node --test'} exited with ${result.exitCode}`, detail: result.output });
+        const command = step.rule === 'types-clean' ? 'npm run typecheck' : 'npm test';
+        const message = `${step.rule === 'types-clean' ? 'tsc' : 'node --test'} exited with ${result.exitCode}`;
+        if (result.exitCode === null) problems.push({ message, repair: `in .harness/, run \`${command}\` by hand to diagnose termination`, detail: result.output });
+        else findings.push({ rule: step.rule, location: '.harness/', message, detail: result.output });
       }
     }
-    return { checked: steps.length, findings, problems: [], notes: [] };
+    return { checked: steps.length, findings, problems, notes: [] };
   },
 });

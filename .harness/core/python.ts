@@ -60,13 +60,18 @@ export function pythonSensor({ project, paths, exclude }: PythonProject): Sensor
       };
       const unexpected = (id: string, result: ExecResult, command: string): void => {
         if (result.timedOut || result.spawnError !== null) return; // the runner already records these as problems
-        problems.push({ message: `\`${command}\` in ${project}/ exited with ${result.exitCode}`, repair: repair(id), detail: result.output });
+        problems.push({
+          message: `\`${command}\` in ${project}/ exited with ${result.exitCode}`,
+          repair: result.exitCode === null ? `${where} run \`${command}\` by hand to diagnose termination` : repair(id),
+          detail: result.output,
+        });
       };
       const done = () => ({ checked, findings, problems, notes });
 
       const lock = await step(['uv', 'lock', '--check'], 120_000);
       if (lock.exitCode !== 0) {
-        if (!lock.timedOut && lock.spawnError === null) findings.push({ rule: 'lock-current', location: `${project}/uv.lock`, message: 'uv.lock is out of date with pyproject.toml', detail: lock.output });
+        if (lock.exitCode === null) unexpected('lock-current', lock, 'uv lock --check');
+        else if (!lock.timedOut && lock.spawnError === null) findings.push({ rule: 'lock-current', location: `${project}/uv.lock`, message: 'uv.lock is out of date with pyproject.toml', detail: lock.output });
         return done();
       }
       const sync = await step(['uv', 'sync', '--locked'], 600_000);

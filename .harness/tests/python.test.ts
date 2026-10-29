@@ -138,3 +138,16 @@ test('a timed-out step leaves the problem to the runner', async () => {
   assert.equal(run.status, 'error');
   assert.match(run.problems[0]?.message ?? '', /timed out/);
 });
+
+test('every Python step with a null exit code is an error, never a finding', async () => {
+  const root = await repo(true);
+  for (const key of [LOCK, SYNC, RUFF, FORMAT, PYTEST]) {
+    const { env } = fake(root, { [key]: { exitCode: null, output: 'terminated' } });
+    const result = await runSensor('python-client', sensor, env);
+    assert.equal(result.status, 'error', key);
+    assert.deepEqual(result.findings, [], key);
+    assert.equal(result.problems.length, 1, key);
+    assert.match(result.problems[0]?.message ?? '', /exited with null/);
+    assert.match(result.problems[0]?.repair ?? '', /diagnose termination/);
+  }
+});

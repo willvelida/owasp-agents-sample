@@ -11,10 +11,10 @@ const PATTERNS = [
   { rule: 'no-devui', pattern: /devui/i },
 ] as const;
 
-// The guard never reads secrets: .env and *.env files are skipped.
+// The guard never reads secrets: .env, .env.*, and *.env files are skipped.
 const isEnvFile = (path: string): boolean => {
   const name = basename(path);
-  return name === '.env' || name.endsWith('.env');
+  return name === '.env' || name.startsWith('.env.') || name.endsWith('.env');
 };
 
 export default defineSensor({

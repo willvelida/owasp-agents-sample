@@ -58,7 +58,9 @@ export default defineSensor({
     for (const step of STEPS) {
       const result = await ctx.exec(['npm', 'run', step.script], { cwd: UI, timeoutMs: step.timeoutMs });
       if (result.exitCode !== 0 && !result.timedOut && result.spawnError === null) {
-        findings.push({ rule: step.rule, location: `${UI}/`, message: `\`npm run ${step.script}\` exited with ${result.exitCode}`, detail: result.output });
+        const message = `\`npm run ${step.script}\` exited with ${result.exitCode}`;
+        if (result.exitCode === null) problems.push({ message, repair: `in ${UI}/, run \`npm run ${step.script}\` by hand to diagnose termination`, detail: result.output });
+        else findings.push({ rule: step.rule, location: `${UI}/`, message, detail: result.output });
       }
     }
     return { checked: STEPS.length, findings, problems, notes: [] };

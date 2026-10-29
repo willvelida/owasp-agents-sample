@@ -1,11 +1,25 @@
 import { applies, describeChanges, detectChanges } from '../core/changes.ts';
 import { defineCommand } from '../core/contracts.ts';
 import type { Rule } from '../core/contracts.ts';
-import { formatReport, parseFlags } from '../core/output.ts';
+import { formatReport, oneLine } from '../core/output.ts';
 import { exec, which } from '../core/process.ts';
 import { runSensors } from '../core/run.ts';
 
 const USAGE = './harness verify [--all] [--base <ref>] [--full]';
+
+export type FlagValues = Record<string, string | boolean | undefined>;
+type Parsed = { values: FlagValues; positionals: string[] } | null;
+
+/** Parses a command's flags strictly; writes usage errors and returns null so the command can exit 2. */
+export function parseFlags(command: string, usage: string, argv: readonly string[], options: NonNullable<ParseArgsConfig['options']>, write: (line: string) => void, allowPositionals = false): Parsed {
+  try {
+    const parsed = parseArgs({ args: [...argv], options, strict: true, allowPositionals });
+    return { values: { ...parsed.values } as FlagValues, positionals: parsed.positionals };
+  } catch (error) {
+    for (const line of [`${command}: error`, `error: ${oneLine((error as Error).message)}`, `usage: ${usage}`, 'next: ./harness --help']) write(line);
+    return null;
+  }
+}
 
 export default defineCommand({
   description: 'Definition of done: run every sensor that applies to the change (or all with --all).',
@@ -49,3 +63,5 @@ export default defineCommand({
     return code;
   },
 });
+import { parseArgs } from 'node:util';
+import type { ParseArgsConfig } from 'node:util';

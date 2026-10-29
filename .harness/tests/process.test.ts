@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
+import childProcess from 'node:child_process';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { syncBuiltinESMExports } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { PassThrough } from 'node:stream';
 import { after, before, test } from 'node:test';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { exec, killAll, OUTPUT_CAP_BYTES, redact, resolveCommand, stripAnsi, which } from '../core/process.ts';
+import { childEnv, exec, killAll, OUTPUT_CAP_BYTES, redact, resolveCommand, stripAnsi, which } from '../core/process.ts';
 
 const NODE = process.execPath;
 let root = '';
@@ -32,6 +35,15 @@ async function gone(pid: number): Promise<boolean> {
   return !alive(pid);
 }
 
+async function cleanup(pid: number): Promise<void> {
+  if (pid > 0 && alive(pid)) {
+    process.kill(pid, 'SIGKILL');
+    assert.ok(await gone(pid), 'fixture process survived cleanup');
+  }
+}
+
+const POSIX_ONLY = { skip: process.platform === 'win32' ? 'Windows taskkill cannot recover an exited leader tree' : false };
+
 test('exit codes and output come back', async () => {
   const result = await run("console.log('hello'); console.error('oops'); process.exit(3)");
   assert.equal(result.exitCode, 3);
@@ -58,6 +70,136 @@ test('a timeout kills the child and its grandchild', async () => {
   const pid = Number(/GRANDCHILD (\d+)/.exec(result.output)?.[1]);
   assert.ok(pid > 0, `no grandchild pid in: ${result.output}`);
   assert.ok(await gone(pid), 'grandchild still running');
+});
+
+for (const earlyExit of [false, true]) {
+  test(`POSIX timeout kills a SIGTERM-resistant descendant after its leader ${earlyExit ? 'already exited' : 'was killed'}`, POSIX_ONLY, async () => {
+    const descendant = "process.on('SIGTERM', () => {}); process.send('ready'); setInterval(() => {}, 1000)";
+    const script = `
+      const { spawn } = require('node:child_process');
+      const g = spawn(process.execPath, ['-e', ${JSON.stringify(descendant)}], { stdio: ['ignore', ${earlyExit ? "'inherit'" : "'ignore'"}, 'ignore', 'ipc'] });
+      g.once('message', () => { console.log('GRANDCHILD ' + g.pid); ${earlyExit ? 'process.exit(1)' : 'setInterval(() => {}, 1000)'}; });
+    `;
+    let pid = 0;
+    try {
+      const result = await run(script, 1500);
+      pid = Number(/GRANDCHILD (\d+)/.exec(result.output)?.[1]);
+      assert.ok(pid > 0, 'descendant did not start');
+      assert.equal(result.timedOut, true);
+      assert.equal(result.exitCode, null);
+      assert.ok(await gone(pid), 'descendant survived escalation after leader exit');
+    } finally {
+      await cleanup(pid);
+    }
+  });
+}
+
+test('POSIX killAll kills a descendant after its leader exited', POSIX_ONLY, async () => {
+  const pidFile = join(root, 'orphan-pids.json');
+  const script = `
+    const { spawn } = require('node:child_process');
+    const g = spawn(process.execPath, ['-e', "process.on('SIGTERM', () => {}); process.send('ready'); setInterval(() => {}, 1000)"], { stdio: ['ignore', 'inherit', 'inherit', 'ipc'] });
+    g.once('message', () => {
+      require('node:fs').writeFileSync(${JSON.stringify(pidFile)}, JSON.stringify([process.pid, g.pid]));
+      process.exit(1);
+    });
+  `;
+  const pending = run(script, 60_000);
+  let leader = 0;
+  let descendant = 0;
+  try {
+    for (let i = 0; i < 50 && !descendant; i++) {
+      await sleep(100);
+      [leader, descendant] = JSON.parse(await readFile(pidFile, 'utf8').catch(() => '[0,0]')) as [number, number];
+    }
+    assert.ok(descendant > 0, 'descendant did not start');
+    assert.ok(await gone(leader), 'leader did not exit');
+    assert.ok(alive(descendant), 'descendant did not outlive the leader');
+    assert.equal(killAll(), 1);
+    assert.equal((await pending).timedOut, false);
+    assert.ok(await gone(descendant), 'descendant survived killAll');
+  } finally {
+    killAll();
+    await cleanup(descendant);
+    await pending;
+  }
+});
+
+test('a clean leader exit is not a timeout when a descendant holds stdout', async () => {
+  const script = `
+    const { spawn } = require('node:child_process');
+    const g = spawn(process.execPath, ['-e', "process.send('ready'); setTimeout(() => process.exit(0), 4000)"], { stdio: ['ignore', 'inherit', 'inherit', 'ipc'] });
+    g.once('message', () => { console.log('GRANDCHILD ' + g.pid); process.exit(0); });
+  `;
+  let pid = 0;
+  try {
+    const result = await run(script, 1500);
+    pid = Number(/GRANDCHILD (\d+)/.exec(result.output)?.[1]);
+    assert.ok(pid > 0, 'descendant did not start');
+    assert.equal(result.exitCode, 0);
+    assert.equal(result.timedOut, false);
+  } finally {
+    await cleanup(pid);
+  }
+});
+
+test('POSIX group escalation and killAll still signal after leader exit and pipe closure (simulated)', async (t) => {
+  const platform = Object.getOwnPropertyDescriptor(process, 'platform')!;
+  const signals: [number, NodeJS.Signals | number | undefined][] = [];
+  let child = new childProcess.ChildProcess();
+  Object.defineProperty(child, 'pid', { value: 12345 });
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  t.mock.method(childProcess, 'spawn', () => child);
+  t.mock.method(process, 'kill', (pid: number, signal?: NodeJS.Signals | number) => {
+    signals.push([pid, signal]);
+    return true;
+  });
+  Object.defineProperty(process, 'platform', { value: 'linux' });
+  syncBuiltinESMExports();
+  try {
+    const pending = run('', 100);
+    t.mock.timers.tick(100);
+    Object.defineProperty(child, 'signalCode', { value: 'SIGTERM' });
+    child.emit('exit', null, 'SIGTERM');
+    child.emit('close', null, 'SIGTERM');
+    assert.equal((await pending).timedOut, true);
+    assert.deepEqual(signals, [[-12345, 'SIGTERM']]);
+    t.mock.timers.tick(2000);
+    assert.deepEqual(signals, [[-12345, 'SIGTERM'], [-12345, 'SIGKILL']]);
+
+    child = new childProcess.ChildProcess();
+    Object.defineProperty(child, 'pid', { value: 12346 });
+    const interrupted = run('', 100);
+    t.mock.timers.tick(100);
+    Object.defineProperty(child, 'exitCode', { value: 1 });
+    child.emit('exit', 1, null);
+    child.emit('close', 1, null);
+    await interrupted;
+    assert.equal(killAll(), 1);
+    assert.deepEqual(signals.at(-1), [-12346, 'SIGKILL']);
+
+    child = new childProcess.ChildProcess();
+    const stdout = new PassThrough();
+    Object.defineProperties(child, { pid: { value: 12347 }, stdout: { value: stdout }, exitCode: { value: 0 } });
+    const clean = run('', 100);
+    child.emit('exit', 0, null);
+    let completed = false;
+    void clean.then(() => { completed = true; });
+    t.mock.timers.tick(100);
+    await Promise.resolve();
+    assert.equal(completed, false, 'capture should wait for inherited pipes, not the step deadline');
+    t.mock.timers.tick(4900);
+    assert.equal((await clean).exitCode, 0);
+    assert.equal((await clean).timedOut, false);
+    assert.equal(stdout.destroyed, true);
+    assert.deepEqual(signals.filter(([pid]) => pid === -12347), [[-12347, 'SIGKILL']]);
+  } finally {
+    killAll();
+    Object.defineProperty(process, 'platform', platform);
+    t.mock.restoreAll();
+    t.mock.timers.reset();
+    syncBuiltinESMExports();
+  }
 });
 
 test('output is capped to the last 256 KiB', async () => {
@@ -97,6 +239,25 @@ test('the child gets NO_COLOR, loses FORCE_COLOR, and env undefined removes a va
   }
 });
 
+test('undefined env overrides remove mixed-case RUN_INTEGRATION on Windows', () => {
+  const platform = Object.getOwnPropertyDescriptor(process, 'platform')!;
+  const name = 'rUn_InTeGrAtIoN';
+  const previous = process.env[name];
+  try {
+    process.env[name] = '1';
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+    const env = childEnv({ RUN_INTEGRATION: undefined });
+    assert.ok(!Object.keys(env).some((key) => key.toLowerCase() === 'run_integration'));
+    assert.equal(process.env[name], '1', 'parent environment must not change');
+    assert.equal(childEnv({ RUN_INTEGRATION: '0' }).RUN_INTEGRATION, '0');
+    Object.defineProperty(process, 'platform', { value: 'linux' });
+    assert.equal(childEnv({ RUN_INTEGRATION: undefined })[name], '1', 'POSIX names stay case-sensitive');
+  } finally {
+    Object.defineProperty(process, 'platform', platform);
+    if (previous === undefined) delete process.env[name];
+    else process.env[name] = previous;
+  }
+});
 test('a missing executable is a spawn error', async () => {
   const result = await exec(root, ['harness-no-such-tool-xyz'], { cwd: '.', timeoutMs: 5000 });
   assert.notEqual(result.spawnError, null);

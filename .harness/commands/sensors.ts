@@ -1,6 +1,7 @@
 import { defineCommand } from '../core/contracts.ts';
 import type { SensorDefinition } from '../core/contracts.ts';
-import { oneLine, parseFlags } from '../core/output.ts';
+import { oneLine } from '../core/output.ts';
+import { parseFlags } from './verify.ts';
 
 const USAGE = './harness sensors [<name>]';
 

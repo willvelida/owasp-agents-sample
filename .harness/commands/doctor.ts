@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { describeChanges, detectChanges } from '../core/changes.ts';
 import { defineCommand } from '../core/contracts.ts';
 import type { Tool } from '../core/contracts.ts';
-import { parseFlags } from '../core/output.ts';
+import { parseFlags } from './verify.ts';
 import { exec, which } from '../core/process.ts';
 import { TOOL_REPAIR } from '../core/run.ts';
 

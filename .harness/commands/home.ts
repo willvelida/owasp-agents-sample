@@ -1,6 +1,6 @@
 import { applies, describeChanges, detectChanges } from '../core/changes.ts';
 import { defineCommand } from '../core/contracts.ts';
-import { parseFlags } from '../core/output.ts';
+import { parseFlags } from './verify.ts';
 import { exec } from '../core/process.ts';
 
 const USAGE = './harness [home]';
