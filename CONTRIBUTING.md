@@ -69,6 +69,18 @@ These rules keep the starter and solution comparison meaningful. A pull request 
 * **Keep secrets out.** Never commit `.env` files, model keys, tenant or subscription IDs, or tokens. `starter/.env` holds a live model key.
 * **Use synthetic data only.** All health data in this repository is fictional. Don't add real health data, in code, fixtures, issues, or screenshots.
 
+## Agent guidance
+
+Start with [AGENTS.md](AGENTS.md). Its project map links nested guides for the starter, solution, browser UI, infrastructure, provisioning scripts, CLI client, red team, and verification harness. Read the root guide and each affected area's guide before editing, even if your agent does not discover nested files automatically. For a cross-project change, read every affected guide; sibling-directory guidance does not load through inheritance alone.
+
+Nested guides add project-specific context, not permission to override root safeguards or session and developer restrictions. For example, `solution/azure.yaml` sits outside `solution/infra/`, but its work still needs the infrastructure guide. If instructions conflict, stop and surface the conflict rather than choose the more permissive text. A separate worktree isolates source changes, not credentials, containers, or Azure resources.
+
+Human README deployment, sign-in, stack, and red-team recipes are operator documentation, not agent execution permission. The [root operational policy](AGENTS.md#scoped-operational-work) defines eligibility for local stack/probe work, solution azd/Azure deployment and probes, and solution supply-chain validation without tying permissions to individual issues. Each operation still needs explicit user/operator authorization for its target, effects, and cleanup, shared-environment coordination, and compatible session, developer, and tool permissions. Registry publishing/signing needs its own approval. Editing these instructions is not authorization.
+
+Keep operational work separate from routine harness verification. Never deploy the insecure starter application to Azure or any shared environment; use synthetic data only. Never read or share protected files, credentials, or identifiers, including through helpers. If a command needs protected state or would expose it, hand that step to the operator for sanitized evidence instead. Report pending live evidence without fabricating results. Root `AGENTS.md` requires signed-off commits but does not itself prohibit commits; a session-specific no-commit or no-push instruction still applies.
+
+The starter and solution top-level guides mirror shared maintenance guidance. The UI, infrastructure, and provisioning guides are solution-only because the starter has no corresponding components.
+
 ## Run the checks
 
 Run the checks for every project you changed before you open a pull request. CI runs the same commands.

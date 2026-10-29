@@ -2,19 +2,26 @@
 
 Biotrackr is a fictional health-tracking agent shipped twice to teach the OWASP Top 10 for Agentic Applications: `starter/` is insecure on purpose, and `solution/` shows a tested control for each risk. This guide gives coding agents the rules unique to this repository and the one command that proves a change is done.
 
+## Scope and inheritance
+
+This file applies throughout the repository. Before editing, read the nested `AGENTS.md` guides for every area your change affects, including related areas outside your working directory. Nested guides add project-specific detail; they do not relax these safeguards or session and developer restrictions. If instructions conflict, stop and surface the conflict rather than follow the more permissive rule.
+
+The project map links the guides for explicit reading when your agent does not discover nested files automatically. Human README commands describe how operators run the sample; they are not permission to execute prohibited operations. A separate worktree does not isolate Azure resources, credentials, or the container engine.
+
 ## Project map
 
-| Path | What it is | Checked by |
-|------|------------|------------|
-| `starter/` | Deliberately insecure chat agent, health MCP server, report agent, and seed loader | `python-starter` |
-| `solution/` | Hardened mirror of the starter, plus Agent ID scripts, azd infrastructure, and tests | `python-solution` |
-| `solution/ui/` | Text-only Vue browser client for the solution | `ui` |
-| `solution/infra/`, `solution/azure.yaml` | Azure infrastructure deployed by azd | `infra-guard`, `python-solution` |
-| `client/` | `biotrackr-chat` CLI client for every target | `python-client`, `python-redteam` |
-| `redteam/` | Shared PyRIT red-team harness | `python-redteam` |
-| `ruff.toml` | Lint settings shared by every Python project | all four Python sensors |
-| `harness`, `harness.cmd`, `.harness/` | The `./harness` CLI, its sensors, and its tests | `harness` |
-| `data/seed/`, `docs/` | Synthetic seed data, architecture, ADRs, runbook, scorecards | none |
+| Path | What it is | Agent guide | Checked by |
+|------|------------|-------------|------------|
+| `starter/` | Deliberately insecure chat agent, health MCP server, report agent, and seed loader | [starter](starter/AGENTS.md) | `python-starter` |
+| `solution/` | Hardened mirror of the starter, plus Agent ID scripts, azd infrastructure, and tests | [solution](solution/AGENTS.md) | `python-solution` |
+| `solution/ui/` | Text-only Vue browser client for the solution | [browser client](solution/ui/AGENTS.md) | `ui` |
+| `solution/infra/`, `solution/azure.yaml` | Azure infrastructure deployed by azd | [infrastructure](solution/infra/AGENTS.md) | `infra-guard`, `python-solution` |
+| `solution/scripts/` | Agent ID provisioning, hooks, and seed scripts | [scripts](solution/scripts/AGENTS.md) | `python-solution` |
+| `client/` | `biotrackr-chat` CLI client for every target | [CLI client](client/AGENTS.md) | `python-client`, `python-redteam` |
+| `redteam/` | Shared PyRIT red-team harness | [red team](redteam/AGENTS.md) | `python-redteam` |
+| `ruff.toml` | Lint settings shared by every Python project | this guide | all four Python sensors |
+| `harness`, `harness.cmd`, `.harness/` | The `./harness` CLI, its sensors, and its tests | [verification harness](.harness/AGENTS.md) | `harness` |
+| `data/seed/`, `docs/` | Synthetic seed data, architecture, ADRs, runbook, scorecards | this guide | none |
 
 ## Must never
 
@@ -23,7 +30,26 @@ Biotrackr is a fictional health-tracking agent shipped twice to teach the OWASP 
 * Mirror every non-security change in both `starter/` and `solution/`, or say in the pull request why it can't be mirrored.
 * Never read, print, or commit `.env` files, `.secrets/`, `.azure/`, keys, tokens, or tenant or subscription IDs.
 * Use synthetic data only.
-* Never deploy the starter. Don't start the stacks, run the red team, or run `azd` to verify a change.
+* Never deploy the insecure starter application to Azure or any shared environment. Operational work must satisfy the authorization gates below; routine verification does not authorize it.
+
+## Scoped operational work
+
+These are repository-level eligibility rules, not authorization to act. This documentation change, a task assignment, a nested guide, or a worktree does not approve an operation or override session, developer, or tool restrictions.
+
+| Work | Eligible operations after separate authorization |
+|---|---|
+| Local stacks and probes | Start the starter or solution stack on the local machine, run selected red-team probes or chat smoke tests, and perform the necessary synthetic-data reset and cleanup. The starter remains local-only. |
+| Solution Azure deployment and probes | Run solution azd provisioning/deployment and required hooks, make explicitly approved resource or role changes, inspect deployed configuration, and run selected Azure probes and chat smoke tests. |
+| Solution supply-chain validation | Run planned scans, solution ACR builds, and opt-in deployed-digest probes. Registry publishing, signing, and provenance require separate authorization for the selected registry and CI job; deployment does not authorize them. |
+
+Before any eligible operation:
+
+1. Obtain explicit user/operator authorization naming the task, target environment, exact operations, and expected effects. Confirm cost, destructive data or role changes, hooks, fault steps, and reset/cleanup boundaries; approval for one action is not approval for others.
+2. Coordinate with owners of shared container engines, ports, Azure environments, registries, and concurrent sessions before changing them. Agree on timing, resource ownership, recovery, and who performs cleanup. A worktree does not provide operational isolation.
+3. Keep synthetic data only and all protected-data rules above. Do not read, print, share, or commit secret files, credentials, or protected identifiers, and do not invoke helpers that read protected files on the agent's behalf. An operational approval cannot waive this boundary. If a command requires protected state or would expose it in output, stop and hand that step to the operator; obtain only sanitized results.
+4. Confirm the current session, developer, and tool rules permit the action. If any gate is missing or conflicting, do not execute; report the blocked step and request operator handoff. Save only genuine, sanitized evidence, never fabricated baselines or success claims.
+
+All other operational work remains outside this scoped permission. Keep these operations separate from the routine harness checks below.
 
 ## Verify
 
@@ -53,9 +79,8 @@ CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) is the source of truth
 
 ## Don't run
 
-* `podman compose up`, or anything else that starts the starter or solution stacks.
-* The red team (`uv run python -m redteam.run`) or `mcp-scan`.
-* `azd up`, `azd provision`, `azd deploy`, or any other command that changes Azure.
+* Stack starts, the red team, azd, or Azure-changing commands as routine verification. Only the exact operations listed under [scoped operational work](#scoped-operational-work) are eligible after all its gates pass.
+* `mcp-scan`; it is not included in the scoped operational permission.
 * `npm install`. Run `npm ci --ignore-scripts` only when `./harness doctor` asks for it.
 
 ## Where to look next
