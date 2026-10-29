@@ -50,9 +50,11 @@ jobs:
         run: uv run --locked pytest -q
 
   sbom:
-    name: SBOM (${{ matrix.project }})
+    name: SBOM and dependency scan (${{ matrix.project }})
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -69,9 +71,83 @@ jobs:
         with:
           path: ${{ matrix.project }}
           format: spdx-json
+          syft-version: v1.55.0
+          output-file: ${{ runner.temp }}/sbom.spdx.json
           artifact-name: ${{ matrix.artifact || format('sbom-{0}.spdx.json', matrix.project) }}
           # Submitting to the dependency graph needs contents: write; the artefact is the evidence here.
           dependency-snapshot: false
+      - uses: aquasecurity/setup-trivy@81e514348e19b6112ce2a7e3ecbafe19c1e1f567 # v0.3.1
+        with:
+          version: v0.76.1
+      - name: Download vulnerability database (one retry)
+        run: |
+          trivy image --download-db-only || {
+            sleep 5
+            trivy image --download-db-only
+          }
+      - name: Gate high and critical dependency vulnerabilities
+        env:
+          SBOM_PATH: ${{ runner.temp }}/sbom.spdx.json
+        run: |
+          trivy sbom "$SBOM_PATH" --skip-db-update \
+            --severity HIGH,CRITICAL --exit-code 1 \
+            --ignorefile "$GITHUB_WORKSPACE/.trivyignore.yaml"
+
+  image-scan:
+    name: image scan (${{ matrix.image.name }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - name: runtime
+            context: solution
+            file: solution/Containerfile
+            target: runtime
+          - name: chart-runner
+            context: solution
+            file: solution/chart_runner.Containerfile
+            target: ""
+          - name: chat-ui
+            context: solution/ui
+            file: solution/ui/Containerfile
+            target: ""
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build deployable image (no push)
+        env:
+          BUILD_CONTEXT: ${{ matrix.image.context }}
+          BUILD_FILE: ${{ matrix.image.file }}
+          BUILD_TARGET: ${{ matrix.image.target }}
+          IMAGE_NAME: ${{ matrix.image.name }}
+        run: |
+          args=()
+          if [[ -n "$BUILD_TARGET" ]]; then
+            args+=(--target "$BUILD_TARGET")
+          fi
+          docker build "${args[@]}" --file "$BUILD_FILE" \
+            --tag "biotrackr-$IMAGE_NAME:ci" "$BUILD_CONTEXT"
+      - uses: aquasecurity/setup-trivy@81e514348e19b6112ce2a7e3ecbafe19c1e1f567 # v0.3.1
+        with:
+          version: v0.76.1
+      - name: Download vulnerability database (one retry)
+        run: |
+          trivy image --download-db-only || {
+            sleep 5
+            trivy image --download-db-only
+          }
+      - name: Gate high and critical image vulnerabilities
+        env:
+          IMAGE_NAME: ${{ matrix.image.name }}
+        run: |
+          trivy image "biotrackr-$IMAGE_NAME:ci" --skip-db-update --scanners vuln \
+            --severity HIGH,CRITICAL --exit-code 1 \
+            --ignorefile "$GITHUB_WORKSPACE/.trivyignore.yaml"
 
   infra-guard:
     name: no stage-only identity in Azure
