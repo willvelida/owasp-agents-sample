@@ -1,7 +1,7 @@
 # Isolated chart runner (ASI05). Only the `chart` dependency group and src/chart_runner: no app code, no
 # Azure SDKs, no credentials. Locally Compose runs it with no network on a Unix socket; on Azure it is the
 # Dynamic Sessions custom-container image (built for linux/amd64 in ACR by the postprovision hook).
-FROM docker.io/library/python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1
+FROM docker.io/library/python:3.15-slim@sha256:94d3426f1def7db4a106a232ac121bfd975393e5dfd40a619b955fae45fe7913
 
 COPY --from=ghcr.io/astral-sh/uv:0.9.28@sha256:59240a65d6b57e6c507429b45f01b8f2c7c0bbeee0fb697c41a39c6a8e3a4cfb /uv /usr/local/bin/uv
 
