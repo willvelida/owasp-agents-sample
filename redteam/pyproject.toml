@@ -5,7 +5,7 @@ description = "Shared PyRIT red-team harness for the Biotrackr starter and solut
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "pyrit==1.1.0",
+    "pyrit==1.2.1",
     "httpx==0.28.1",
     "biotrackr-client",
 ]
@@ -14,7 +14,7 @@ dependencies = [
 biotrackr-client = { path = "../client", editable = true }
 
 [dependency-groups]
-dev = ["ruff==0.17.1"]
+dev = ["ruff==0.17.5"]
 
 [build-system]
 requires = ["hatchling"]
